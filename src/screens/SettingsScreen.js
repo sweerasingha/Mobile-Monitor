@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -9,8 +9,42 @@ import {
     StatusBar,
     Switch,
     Alert,
+    Linking,
+    Share,
+    Platform,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import NotificationService from '../services/NotificationService';
+
+// Components defined outside to avoid re-renders
+const SettingItem = ({ title, subtitle, value, onToggle, type = 'switch' }) => (
+    <View style={styles.settingItem}>
+        <View style={styles.settingTextContainer}>
+            <Text style={styles.settingTitle}>{title}</Text>
+            {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
+        </View>
+        {type === 'switch' && (
+            <Switch
+                value={value}
+                onValueChange={onToggle}
+                trackColor={{ false: '#ddd', true: '#ff6347' }}
+                thumbColor={value ? '#fff' : '#f4f3f4'}
+            />
+        )}
+        {type === 'button' && (
+            <TouchableOpacity onPress={onToggle} style={styles.settingButton}>
+                <Text style={styles.settingButtonText}>›</Text>
+            </TouchableOpacity>
+        )}
+    </View>
+);
+
+const SectionHeader = ({ title }) => (
+    <View style={styles.sectionHeader}>
+        <Text style={styles.sectionHeaderText}>{title}</Text>
+    </View>
+);
 
 const SettingsScreen = () => {
     const navigation = useNavigation();
@@ -25,89 +59,258 @@ const SettingsScreen = () => {
         analyticsSharing: false,
     });
 
-    const toggleSetting = (settingKey) => {
-        setSettings(prev => ({
-            ...prev,
-            [settingKey]: !prev[settingKey]
-        }));
+    // Load settings from storage on component mount
+    useEffect(() => {
+        loadSettings();
+    }, []);
+
+    const loadSettings = async () => {
+        try {
+            const savedSettings = await AsyncStorage.getItem('appSettings');
+            if (savedSettings) {
+                setSettings(JSON.parse(savedSettings));
+            }
+        } catch (error) {
+            console.log('Error loading settings:', error);
+        }
+    };
+
+    const saveSettings = async (newSettings) => {
+        try {
+            await AsyncStorage.setItem('appSettings', JSON.stringify(newSettings));
+        } catch (error) {
+            console.log('Error saving settings:', error);
+        }
+    };
+
+    const toggleSetting = async (settingKey) => {
+        // Special handling for notifications
+        if (settingKey === 'notifications' && !settings.notifications) {
+            const hasPermission = await NotificationService.requestPermission();
+            if (!hasPermission) {
+                return; // Don't toggle if permission denied
+            }
+        }
+
+        const newSettings = {
+            ...settings,
+            [settingKey]: !settings[settingKey],
+        };
+        
+        setSettings(newSettings);
+        await saveSettings(newSettings);
+
+        // Handle notification cancellation
+        if (settingKey === 'notifications' && settings.notifications) {
+            await NotificationService.cancelAllNotifications();
+            showAlert('Notifications Disabled', 'All scheduled notifications have been cancelled.');
+        } else if (settingKey === 'notifications' && !settings.notifications) {
+            showAlert('Notifications Enabled', 'You will now receive security alerts and updates.');
+        }
+
+        // Handle background scanning
+        if (settingKey === 'backgroundScanning') {
+            if (!settings.backgroundScanning) {
+                showAlert(
+                    'Background Scanning Enabled',
+                    'The app will now continuously monitor app behavior. This may affect battery life.'
+                );
+            } else {
+                showAlert(
+                    'Background Scanning Disabled',
+                    'The app will only scan when manually opened.'
+                );
+            }
+        }
     };
 
     const showAlert = (title, message) => {
         Alert.alert(title, message, [{ text: 'OK' }]);
     };
 
-    const handlePrivacyPolicy = () => {
-        showAlert('Privacy Policy', 'This would normally open the privacy policy document or navigate to a privacy policy screen.');
+    const handlePrivacyPolicy = async () => {
+        const privacyPolicyURL = 'https://docs.google.com/document/d/1234567890/edit'; // Replace with your actual privacy policy URL
+        
+        Alert.alert(
+            'Privacy Policy',
+            'Would you like to view our privacy policy?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'View Online',
+                    onPress: async () => {
+                        try {
+                            const supported = await Linking.canOpenURL(privacyPolicyURL);
+                            if (supported) {
+                                await Linking.openURL(privacyPolicyURL);
+                            } else {
+                                showAlert('Error', 'Cannot open privacy policy link');
+                            }
+                        } catch (error) {
+                            showAlert('Error', 'Failed to open privacy policy');
+                        }
+                    },
+                },
+                {
+                    text: 'View Summary',
+                    onPress: () => {
+                        showAlert(
+                            'Privacy Policy Summary',
+                            '• We collect minimal data necessary for app functionality\n' +
+                            '• No personal information is shared with third parties\n' +
+                            '• All data is stored securely on your device\n' +
+                            '• You can export or delete your data anytime'
+                        );
+                    },
+                },
+            ]
+        );
     };
 
-    const handleTermsOfService = () => {
-        showAlert('Terms of Service', 'This would normally open the terms of service document.');
+    const handleTermsOfService = async () => {
+        const termsURL = 'https://docs.google.com/document/d/0987654321/edit'; // Replace with your actual terms URL
+        
+        Alert.alert(
+            'Terms of Service',
+            'Would you like to view our terms of service?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'View Online',
+                    onPress: async () => {
+                        try {
+                            const supported = await Linking.canOpenURL(termsURL);
+                            if (supported) {
+                                await Linking.openURL(termsURL);
+                            } else {
+                                showAlert('Error', 'Cannot open terms of service link');
+                            }
+                        } catch (error) {
+                            showAlert('Error', 'Failed to open terms of service');
+                        }
+                    },
+                },
+                {
+                    text: 'View Summary',
+                    onPress: () => {
+                        showAlert(
+                            'Terms of Service Summary',
+                            '• Use the app responsibly and legally\n' +
+                            '• App is provided "as is" without warranties\n' +
+                            '• Users are responsible for their device security\n' +
+                            '• Terms may be updated periodically'
+                        );
+                    },
+                },
+            ]
+        );
     };
 
     const handleAbout = () => {
-        showAlert('About', 'App Privacy Scanner v1.0.0\n\nProtecting your privacy by analyzing app permissions and data usage patterns.');
+        Alert.alert(
+            'About Mobile Monitor',
+            'App Privacy Scanner v1.0.0\n\n' +
+            '🛡️ Protecting your privacy by analyzing app permissions and data usage patterns.\n\n' +
+            '📱 Features:\n' +
+            '• Real-time app monitoring\n' +
+            '• Permission analysis\n' +
+            '• Data usage tracking\n' +
+            '• Security alerts\n\n' +
+            '📧 Support: support@mobilemonitor.com\n' +
+            '🌐 Website: www.mobilemonitor.com',
+            [
+                { text: 'OK' },
+                {
+                    text: 'Rate App',
+                    onPress: () => {
+                        const storeURL = Platform.OS === 'ios'
+                            ? 'https://apps.apple.com/app/your-app-id'
+                            : 'https://play.google.com/store/apps/details?id=com.mobilemonitor';
+                        Linking.openURL(storeURL).catch(() => {
+                            showAlert('Error', 'Cannot open app store');
+                        });
+                    },
+                },
+            ]
+        );
     };
 
-    const handleDataExport = () => {
-        showAlert('Export Data', 'Your app analysis data would be exported to a secure file.');
+    const handleDataExport = async () => {
+        try {
+            // Get app data for export
+            const appData = await AsyncStorage.getItem('appSettings');
+            const scanData = await AsyncStorage.getItem('scanResults') || '{}';
+            
+            const exportData = {
+                settings: JSON.parse(appData || '{}'),
+                scanResults: JSON.parse(scanData),
+                exportDate: new Date().toISOString(),
+                appVersion: '1.0.0',
+            };
+
+            const exportText = `Mobile Monitor Data Export
+Generated: ${new Date().toLocaleDateString()}
+
+Settings:
+${JSON.stringify(exportData.settings, null, 2)}
+
+Scan Results:
+${JSON.stringify(exportData.scanResults, null, 2)}
+
+This data was exported from Mobile Monitor v${exportData.appVersion}`;
+
+            // Share the data
+            await Share.share({
+                message: exportText,
+                title: 'Mobile Monitor Data Export',
+            });
+
+        } catch (error) {
+            console.log('Export error:', error);
+            showAlert('Export Failed', 'Unable to export your data. Please try again.');
+        }
     };
 
     const handleResetSettings = () => {
         Alert.alert(
             'Reset Settings',
-            'Are you sure you want to reset all settings to default?',
+            'Are you sure you want to reset all settings to default? This action cannot be undone.',
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Reset',
                     style: 'destructive',
-                    onPress: () => {
-                        setSettings({
+                    onPress: async () => {
+                        const defaultSettings = {
                             notifications: true,
                             autoScan: true,
                             dataCollection: false,
                             riskAlerts: true,
                             backgroundScanning: false,
                             analyticsSharing: false,
-                        });
-                        showAlert('Settings Reset', 'All settings have been reset to default values.');
-                    }
-                }
+                        };
+                        
+                        setSettings(defaultSettings);
+                        await saveSettings(defaultSettings);
+                        
+                        // Also clear any other stored data if needed
+                        try {
+                            await AsyncStorage.removeItem('scanResults');
+                            await AsyncStorage.removeItem('userPreferences');
+                        } catch (error) {
+                            console.log('Error clearing additional data:', error);
+                        }
+                        
+                        showAlert('Settings Reset', 'All settings have been reset to default values and stored data has been cleared.');
+                    },
+                },
             ]
         );
     };
 
-    const SettingItem = ({ title, subtitle, value, onToggle, type = 'switch' }) => (
-        <View style={styles.settingItem}>
-            <View style={styles.settingTextContainer}>
-                <Text style={styles.settingTitle}>{title}</Text>
-                {subtitle && <Text style={styles.settingSubtitle}>{subtitle}</Text>}
-            </View>
-            {type === 'switch' && (
-                <Switch
-                    value={value}
-                    onValueChange={onToggle}
-                    trackColor={{ false: '#ddd', true: '#ff6347' }}
-                    thumbColor={value ? '#fff' : '#f4f3f4'}
-                />
-            )}
-            {type === 'button' && (
-                <TouchableOpacity onPress={onToggle} style={styles.settingButton}>
-                    <Text style={styles.settingButtonText}>›</Text>
-                </TouchableOpacity>
-            )}
-        </View>
-    );
-
     const navigateBack = () => {
         navigation.goBack();
     };
-
-    const SectionHeader = ({ title }) => (
-        <View style={styles.sectionHeader}>
-            <Text style={styles.sectionHeaderText}>{title}</Text>
-        </View>
-    );
 
     return (
         <SafeAreaView style={styles.container}>
