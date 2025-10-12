@@ -137,7 +137,9 @@ const AppListScreen = ({ route }) => {
     const navigateToAppDetail = (app) => {
         // Use only real data - no mock generation
         const formatAppSize = (bytes) => {
-            if (!bytes) return 'Unknown';
+            if (!bytes) {
+                return 'Unknown';
+            }
             const mb = bytes / (1024 * 1024);
             return `${Math.round(mb)} MB`;
         };
@@ -145,7 +147,8 @@ const AppListScreen = ({ route }) => {
         // Enhanced app data with only real information
         const appData = {
             ...app,
-            dataUsage: app.dataUsage ? `${app.dataUsage} (last 30 days)` : 'No data available',
+            // Keep original dataUsage object for detailed breakdown
+            dataUsageSummary: app.dataUsage?.total ? `${Math.round(app.dataUsage.total / (1024 * 1024))} MB (last 30 days)` : 'No data available',
             networkActivity: {
                 dataSent: app.networkActivity?.dataSent || 'Unknown',
                 dataReceived: app.networkActivity?.dataReceived || 'Unknown',

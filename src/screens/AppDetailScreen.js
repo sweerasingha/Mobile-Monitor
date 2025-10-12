@@ -39,29 +39,71 @@ const AppDetailScreen = ({ route }) => {
 
     // Helper function to format last used time
     const formatLastUsed = (timestamp) => {
-        if (!timestamp) {
-            return 'Unknown';
+        if (!timestamp || timestamp === 0) {
+            return 'Never used';
         }
 
         const now = Date.now();
         const diff = now - timestamp;
         const minutes = Math.floor(diff / (1000 * 60));
         const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
 
-        if (minutes < 60) {
+        if (minutes < 1) {
+            return 'Just now';
+        } else if (minutes < 60) {
             return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
         } else if (hours < 24) {
             return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
-        } else {
-            const days = Math.floor(hours / 24);
+        } else if (days < 30) {
             return `${days} day${days !== 1 ? 's' : ''} ago`;
+        } else {
+            return new Date(timestamp).toLocaleDateString();
         }
     };
 
+    // Get the last used timestamp from multiple possible field names
+    const getLastUsedTimestamp = (app) => {
+        return app.lastUsedTimestamp || app.lastTimeUsed || app.lastUsed || 0;
+    };
+
+    // Helper function to format bytes
+    const formatBytes = (bytes) => {
+        if (!bytes || bytes === 0) {
+            return '0 B';
+        }
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    };
+
+    // Helper function to format install date
+    const formatInstallDate = (timestamp) => {
+        if (!timestamp) {
+            return 'Unknown';
+        }
+        return new Date(timestamp).toLocaleDateString();
+    };
+
+    // Helper function to format usage stats
+    const formatUsageStats = (app) => {
+        const usage = [];
+        if (app.totalTimeInForeground && app.totalTimeInForeground > 0) {
+            const minutes = Math.floor(app.totalTimeInForeground / (1000 * 60));
+            usage.push(`${minutes} min foreground`);
+        }
+        if (app.launchCount && app.launchCount > 0) {
+            usage.push(`${app.launchCount} launches`);
+        }
+        return usage.length > 0 ? usage.join(', ') : 'No usage data';
+    };
+
     // Get formatted data
-    const formattedLastUsed = appData.lastUsedTimestamp ?
-        formatLastUsed(appData.lastUsedTimestamp) :
-        appData.lastUsed;
+    const lastUsedTimestamp = getLastUsedTimestamp(appData);
+    const formattedLastUsed = formatLastUsed(lastUsedTimestamp);
+    const formattedInstallDate = formatInstallDate(appData.firstInstallTime);
+    const formattedUsageStats = formatUsageStats(appData);
 
     const navigateBack = () => {
         navigation.goBack();
@@ -158,9 +200,10 @@ const AppDetailScreen = ({ route }) => {
                         </View>
                     </View>
                     <View style={styles.cardRowBetween}><Text style={styles.label}>Last Used</Text><Text style={styles.value}>{formattedLastUsed}</Text></View>
-                    <View style={styles.cardRowBetween}><Text style={styles.label}>Data Usage</Text><Text style={styles.value}>{appData.dataUsage}</Text></View>
+                    <View style={styles.cardRowBetween}><Text style={styles.label}>Usage Stats</Text><Text style={styles.value}>{formattedUsageStats}</Text></View>
+                    <View style={styles.cardRowBetween}><Text style={styles.label}>Data Usage</Text><Text style={styles.value}>{appData.dataUsageSummary || 'No data available'}</Text></View>
                     <View style={styles.cardRowBetween}><Text style={styles.label}>Category</Text><Text style={styles.value}>{appData.category}</Text></View>
-                    <View style={styles.cardRowBetween}><Text style={styles.label}>Install Date</Text><Text style={styles.value}>{appData.installDate || 'Unknown'}</Text></View>
+                    <View style={styles.cardRowBetween}><Text style={styles.label}>Install Date</Text><Text style={styles.value}>{formattedInstallDate}</Text></View>
                 </View>
                 {/* Permissions Card */}
                 <View style={styles.card}>
@@ -201,8 +244,26 @@ const AppDetailScreen = ({ route }) => {
                 {/* Network Activity Card */}
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Network Activity</Text>
-                    <View style={styles.cardRowBetween}><Text style={styles.label}>Data Sent</Text><Text style={styles.value}>{appData.networkActivity?.dataSent || 'N/A'}</Text></View>
-                    <View style={styles.cardRowBetween}><Text style={styles.label}>Data Received</Text><Text style={styles.value}>{appData.networkActivity?.dataReceived || 'N/A'}</Text></View>
+                    <View style={styles.cardRowBetween}>
+                        <Text style={styles.label}>Mobile Data</Text>
+                        <Text style={styles.value}>{formatBytes((appData.dataUsage?.mobile || 0))}</Text>
+                    </View>
+                    <View style={styles.cardRowBetween}>
+                        <Text style={styles.label}>WiFi Data</Text>
+                        <Text style={styles.value}>{formatBytes((appData.dataUsage?.wifi || 0))}</Text>
+                    </View>
+                    <View style={styles.cardRowBetween}>
+                        <Text style={styles.label}>Total Data</Text>
+                        <Text style={styles.value}>{formatBytes((appData.dataUsage?.total || 0))}</Text>
+                    </View>
+                    <View style={styles.cardRowBetween}>
+                        <Text style={styles.label}>Data Sent</Text>
+                        <Text style={styles.value}>{formatBytes((appData.dataUsage?.sent || 0))}</Text>
+                    </View>
+                    <View style={styles.cardRowBetween}>
+                        <Text style={styles.label}>Data Received</Text>
+                        <Text style={styles.value}>{formatBytes((appData.dataUsage?.received || 0))}</Text>
+                    </View>
                 </View>
                 {/* Storage Card */}
                 <View style={styles.card}>

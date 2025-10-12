@@ -31,13 +31,14 @@ const RecentApps = ({ apps, isLoading }) => {
 
         // Map the app data to match AppDetails screen expectations
         const appData = {
+            ...app, // Include all original app data
             name: app.name,
             version: app.version || 'Unknown',
             packageName: app.packageName,
             icon: app.icon, // Include the icon data
             riskLevel: getRiskLevel(app),
-            lastUsed: formatLastUsed(app.lastUsedTimestamp),
-            dataUsage: dataUsage.total > 0 ? `${formatDataUsage(dataUsage.total)} (last 30 days)` : 'No data available',
+            lastUsed: formatLastUsed(app.lastUsedTimestamp || app.lastTimeUsed),
+            dataUsageSummary: dataUsage.total > 0 ? `${formatDataUsage(dataUsage.total)} (last 30 days)` : 'No data available',
             category: app.category,
             permissions: app.permissions || [],
             networkActivity: {
