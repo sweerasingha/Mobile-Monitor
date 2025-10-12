@@ -80,10 +80,18 @@ const AppDetailScreen = ({ route }) => {
 
     // Helper function to format install date
     const formatInstallDate = (timestamp) => {
-        if (!timestamp) {
+        if (!timestamp || timestamp === 0) {
             return 'Unknown';
         }
-        return new Date(timestamp).toLocaleDateString();
+        try {
+            return new Date(timestamp).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+            });
+        } catch (error) {
+            return 'Unknown';
+        }
     };
 
     // Helper function to format usage stats
@@ -104,6 +112,16 @@ const AppDetailScreen = ({ route }) => {
     const formattedLastUsed = formatLastUsed(lastUsedTimestamp);
     const formattedInstallDate = formatInstallDate(appData.firstInstallTime);
     const formattedUsageStats = formatUsageStats(appData);
+
+    // Debug logging to see what data we have
+    console.log('AppDetailScreen:', {
+        packageName: appData.packageName,
+        firstInstallTime: appData.firstInstallTime,
+        formattedInstallDate,
+        size: appData.size,
+        storageData: appData.storage,
+        versionName: appData.versionName,
+    });
 
     const navigateBack = () => {
         navigation.goBack();
@@ -200,10 +218,14 @@ const AppDetailScreen = ({ route }) => {
                         </View>
                     </View>
                     <View style={styles.cardRowBetween}><Text style={styles.label}>Last Used</Text><Text style={styles.value}>{formattedLastUsed}</Text></View>
-                    <View style={styles.cardRowBetween}><Text style={styles.label}>Usage Stats</Text><Text style={styles.value}>{formattedUsageStats}</Text></View>
+                    {formattedUsageStats !== 'No usage data' && (
+                        <View style={styles.cardRowBetween}><Text style={styles.label}>Usage Stats</Text><Text style={styles.value}>{formattedUsageStats}</Text></View>
+                    )}
                     <View style={styles.cardRowBetween}><Text style={styles.label}>Data Usage</Text><Text style={styles.value}>{appData.dataUsageSummary || 'No data available'}</Text></View>
                     <View style={styles.cardRowBetween}><Text style={styles.label}>Category</Text><Text style={styles.value}>{appData.category}</Text></View>
-                    <View style={styles.cardRowBetween}><Text style={styles.label}>Install Date</Text><Text style={styles.value}>{formattedInstallDate}</Text></View>
+                    {formattedInstallDate !== 'Unknown' && (
+                        <View style={styles.cardRowBetween}><Text style={styles.label}>Install Date</Text><Text style={styles.value}>{formattedInstallDate}</Text></View>
+                    )}
                 </View>
                 {/* Permissions Card */}
                 <View style={styles.card}>
@@ -268,8 +290,22 @@ const AppDetailScreen = ({ route }) => {
                 {/* Storage Card */}
                 <View style={styles.card}>
                     <Text style={styles.cardTitle}>Storage</Text>
-                    <View style={styles.cardRowBetween}><Text style={styles.label}>App Size</Text><Text style={styles.value}>{appData.storage?.appSize || 'N/A'}</Text></View>
-                    <View style={styles.cardRowBetween}><Text style={styles.label}>Data Size</Text><Text style={styles.value}>{appData.storage?.dataSize || 'N/A'}</Text></View>
+                    <View style={styles.cardRowBetween}>
+                        <Text style={styles.label}>App Size</Text>
+                        <Text style={styles.value}>{appData.storage?.appSize || formatBytes(appData.size) || 'Unknown'}</Text>
+                    </View>
+                    {appData.storage?.dataSize && appData.storage.dataSize !== 'Unknown' && (
+                        <View style={styles.cardRowBetween}>
+                            <Text style={styles.label}>Data Size</Text>
+                            <Text style={styles.value}>{appData.storage.dataSize}</Text>
+                        </View>
+                    )}
+                    {appData.versionName && (
+                        <View style={styles.cardRowBetween}>
+                            <Text style={styles.label}>Version</Text>
+                            <Text style={styles.value}>{appData.versionName}</Text>
+                        </View>
+                    )}
                 </View>
             </ScrollView>
             {/* Modern Bottom Navigation Bar */}
