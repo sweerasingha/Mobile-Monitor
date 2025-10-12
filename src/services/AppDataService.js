@@ -1,122 +1,25 @@
-import { NativeModules, Platform } from 'react-native';
+import { Platform } from 'react-native';
 import appCategorization from '../utils/appCategorization';
 import { PermissionService } from './PermissionService';
-
-const { InstalledApps } = NativeModules;
-
-// Fallback mock data for development/testing
-const mockInstalledApps = [
-    {
-        id: '1',
-        name: 'Facebook',
-        icon: require('../assets/icons/facebook.png'),
-        packageName: 'com.facebook.katana',
-        lastUsedTimestamp: Date.now() - 1000 * 60 * 10,
-        permissions: ['CAMERA', 'LOCATION', 'CONTACTS', 'STORAGE', 'MICROPHONE'],
-        category: 'Social',
-        installDate: '2023-01-15',
-        version: '1.0.0',
-        totalTimeInForeground: 3600000,
-    },
-    {
-        id: '2',
-        name: 'Instagram',
-        icon: require('../assets/icons/instagram.png'),
-        packageName: 'com.instagram.android',
-        lastUsedTimestamp: Date.now() - 1000 * 60 * 30,
-        permissions: ['CAMERA', 'LOCATION', 'CONTACTS', 'STORAGE'],
-        category: 'Social',
-        installDate: '2023-02-10',
-        version: '2.0.0',
-        totalTimeInForeground: 2400000,
-    },
-    {
-        id: '3',
-        name: 'WhatsApp',
-        icon: 'default',
-        packageName: 'com.whatsapp',
-        lastUsedTimestamp: Date.now() - 1000 * 60 * 5,
-        permissions: ['CAMERA', 'CONTACTS', 'STORAGE', 'MICROPHONE'],
-        category: 'Communication',
-        installDate: '2023-01-20',
-        version: '2.23.14.74',
-        totalTimeInForeground: 5400000,
-    },
-    {
-        id: '4',
-        name: 'Netflix',
-        icon: 'default',
-        packageName: 'com.netflix.mediaclient',
-        lastUsedTimestamp: Date.now() - 1000 * 60 * 60 * 2,
-        permissions: ['STORAGE', 'NETWORK'],
-        category: 'Entertainment',
-        installDate: '2023-03-05',
-        version: '8.65.0',
-        totalTimeInForeground: 7200000,
-    },
-    {
-        id: '5',
-        name: 'Spotify',
-        icon: 'default',
-        packageName: 'com.spotify.music',
-        lastUsedTimestamp: Date.now() - 1000 * 60 * 45,
-        permissions: ['STORAGE', 'NETWORK', 'MICROPHONE'],
-        category: 'Music',
-        installDate: '2023-02-15',
-        version: '8.8.32.488',
-        totalTimeInForeground: 4800000,
-    },
-    {
-        id: '6',
-        name: 'Microsoft Outlook',
-        icon: 'default',
-        packageName: 'com.microsoft.office.outlook',
-        lastUsedTimestamp: Date.now() - 1000 * 60 * 120,
-        permissions: ['CONTACTS', 'CALENDAR', 'STORAGE'],
-        category: 'Productivity',
-        installDate: '2023-01-30',
-        version: '4.2328.1',
-        totalTimeInForeground: 3600000,
-    },
-    {
-        id: '7',
-        name: 'YouTube',
-        icon: 'default',
-        packageName: 'com.google.android.youtube',
-        lastUsedTimestamp: Date.now() - 1000 * 60 * 15,
-        permissions: ['CAMERA', 'MICROPHONE', 'STORAGE'],
-        category: 'Entertainment',
-        installDate: '2023-01-10',
-        version: '18.29.34',
-        totalTimeInForeground: 9600000,
-    },
-    {
-        id: '8',
-        name: 'Telegram',
-        icon: 'default',
-        packageName: 'org.telegram.messenger',
-        lastUsedTimestamp: Date.now() - 1000 * 60 * 60,
-        permissions: ['CONTACTS', 'STORAGE', 'MICROPHONE', 'CAMERA'],
-        category: 'Communication',
-        installDate: '2023-02-01',
-        version: '9.9.2',
-        totalTimeInForeground: 4200000,
-    },
-];
+import { DataValidationService } from './DataValidationService';
+import { NativeBridgeService } from './NativeBridgeService';
 
 export class AppDataService {
     constructor() {
-        this.useMockData = !InstalledApps; // Use mock data if native module is not available
+        this.isNativeModuleAvailable = NativeBridgeService.isAvailable();
+        this.platformInfo = NativeBridgeService.getPlatformInfo();
+
+        console.log('AppDataService initialized - Native module available:', this.isNativeModuleAvailable);
+        console.log('Platform info:', this.platformInfo);
     }
 
     async getInstalledApps() {
         console.log('AppDataService: getInstalledApps called');
-        console.log('AppDataService: useMockData =', this.useMockData);
-        console.log('AppDataService: InstalledApps module =', InstalledApps);
+        console.log('AppDataService: Native module available =', this.isNativeModuleAvailable);
 
-        if (this.useMockData) {
-            console.warn('Using mock data - native module not available');
-            return this.processMockData(mockInstalledApps);
+        if (!this.isNativeModuleAvailable) {
+            console.error('Native module InstalledApps not available - app monitoring features disabled');
+            throw new Error('Native module not available. App monitoring features require platform-specific implementations.');
         }
 
         if (Platform.OS === 'android') {
@@ -124,95 +27,101 @@ export class AppDataService {
         } else if (Platform.OS === 'ios') {
             return await this.getIOSApps();
         } else {
-            throw new Error('Unsupported platform');
+            throw new Error(`Unsupported platform: ${Platform.OS}`);
         }
     }
 
     async getAndroidApps() {
         console.log('AppDataService: getAndroidApps called');
         try {
-            console.log('AppDataService: Calling InstalledApps.getInstalledApps()');
-            const rawApps = await InstalledApps.getInstalledApps();
+            const rawApps = await NativeBridgeService.getInstalledApps();
             console.log('AppDataService: Raw apps received:', rawApps?.length || 0, 'apps');
             if (rawApps && rawApps.length > 0) {
                 console.log('AppDataService: Sample app:', rawApps[0]);
             }
-            return this.processAppData(rawApps);
+            return await this.processAppData(rawApps || []);
         } catch (error) {
             console.error('Error getting Android apps:', error);
-            // Fallback to mock data if native module fails
-            console.warn('Falling back to mock data due to native module error');
-            return this.processMockData(mockInstalledApps);
+            throw new Error(`Failed to retrieve Android apps: ${error.message}`);
         }
     }
 
     async getIOSApps() {
         try {
-            const apps = await InstalledApps.getInstalledApps();
-            return this.processAppData(apps);
+            const apps = await NativeBridgeService.getInstalledApps();
+            return await this.processAppData(apps || []);
         } catch (error) {
             console.error('Error getting iOS apps:', error);
-            // iOS doesn't have extensive app monitoring capabilities
-            // Return limited mock data
-            return this.processMockData(mockInstalledApps.slice(0, 3));
+            console.warn('iOS has limited app monitoring capabilities due to platform restrictions');
+            throw new Error(`Failed to retrieve iOS apps: ${error.message}`);
         }
     }
 
-    processAppData(rawApps) {
-        return rawApps.map(app => {
-            const processedApp = {
-                id: app.packageName || app.bundleId || `app_${Date.now()}_${Math.random()}`,
-                name: app.appName || 'Unknown App',
-                icon: app.icon || 'default', // Base64 icon from native module
-                packageName: app.packageName || app.bundleId,
-                lastUsedTimestamp: app.lastTimeUsed || Date.now() - Math.random() * 86400000, // Fallback to recent time
-                permissions: app.permissions || [],
-                category: appCategorization.categorizeApp(app.packageName, app.appName),
-                installDate: app.firstInstallTime ? new Date(app.firstInstallTime).toISOString() : null,
-                version: app.versionName || 'Unknown',
-                totalTimeInForeground: app.totalTimeInForeground || 0,
-                size: app.size || null, // App size in bytes from native module
-            };
+    async processAppData(rawApps) {
+        console.log('AppDataService: Processing app data, received:', rawApps?.length || 0, 'apps');
 
-            // Add risk analysis
-            processedApp.riskAnalysis = PermissionService.analyzeAppRisk(processedApp.permissions);
+        // Validate and sanitize the raw app data
+        const validatedApps = DataValidationService.validateAppArray(rawApps);
+        console.log('AppDataService: After validation:', validatedApps.length, 'valid apps');
 
-            return processedApp;
-        });
-    }
+        // Process apps and enhance with network usage data
+        const enhancedApps = [];
+        for (const app of validatedApps) {
+            try {
+                // Normalize timestamp field names (Android uses lastTimeUsed, we want lastUsedTimestamp)
+                if (app.lastTimeUsed && !app.lastUsedTimestamp) {
+                    app.lastUsedTimestamp = app.lastTimeUsed;
+                }
 
-    processMockData(mockApps) {
-        return mockApps.map(app => {
-            const processedApp = {
-                ...app,
-                lastUsedTimestamp: app.lastUsedTimestamp || Date.now() - Math.random() * 86400000, // Ensure recent timestamp
-                riskAnalysis: PermissionService.analyzeAppRisk(app.permissions),
-            };
-            return processedApp;
-        });
+                // Normalize app name (Android uses appName, we want name)
+                if (app.appName && !app.name) {
+                    app.name = app.appName;
+                }
+
+                // Add category if not already set
+                if (!app.category || app.category === 'Other') {
+                    app.category = appCategorization.categorizeApp(app.packageName, app.name);
+                }
+
+                // Add risk analysis
+                app.riskAnalysis = PermissionService.analyzeAppRisk(app.permissions);
+
+                // Enhance with network usage data
+                const enhancedApp = await NativeBridgeService.enhanceAppWithNetworkUsage(app);
+                enhancedApps.push(enhancedApp);
+            } catch (error) {
+                console.warn('AppDataService: Error enhancing app data for', app.packageName, error);
+                // Add the app without enhancement if network data fails
+                enhancedApps.push(app);
+            }
+        }
+
+        console.log('AppDataService: Enhanced', enhancedApps.length, 'apps with network usage data');
+        return enhancedApps;
     }
 
     async getAppDetails(packageName) {
-        if (this.useMockData) {
-            const mockApp = mockInstalledApps.find(app => app.packageName === packageName);
-            if (mockApp) {
-                return {
-                    ...mockApp,
-                    permissionDetails: PermissionService.getPermissionAnalysis(mockApp.permissions),
-                };
-            }
-            return null;
+        if (!this.isNativeModuleAvailable) {
+            throw new Error('Native module not available - cannot retrieve app details');
+        }
+
+        if (!packageName) {
+            throw new Error('Package name is required to get app details');
         }
 
         try {
-            const appDetails = await InstalledApps.getAppDetails(packageName);
+            const appDetails = await NativeBridgeService.getAppDetails(packageName);
+            if (!appDetails) {
+                return null;
+            }
+
             return {
                 ...appDetails,
                 permissionDetails: PermissionService.getPermissionAnalysis(appDetails.permissions || []),
             };
         } catch (error) {
             console.error('Error getting app details:', error);
-            return null;
+            throw new Error(`Failed to retrieve app details for ${packageName}: ${error.message}`);
         }
     }
 
@@ -250,10 +159,69 @@ export class AppDataService {
      * Get recently used apps
      */
     getRecentApps(apps, limit = 5) {
-        return apps
-            .filter(app => app.lastUsedTimestamp)
-            .sort((a, b) => (b.lastUsedTimestamp || 0) - (a.lastUsedTimestamp || 0))
+        console.log('AppDataService: getRecentApps called with', apps.length, 'apps');
+        const filtered = apps
+            .filter(app => {
+                const lastUsed = app.lastUsedTimestamp || app.lastTimeUsed || 0;
+                const hasUsageData = app.totalTimeInForeground > 0 || app.launchCount > 0;
+                const hasNetworkUsage = app.dataUsage && (app.dataUsage.total > 0);
+                // Identify system apps to potentially exclude (more restrictive)
+                const isSystemApp = app.packageName.startsWith('com.android.') &&
+                                   app.packageName !== 'com.android.chrome' &&
+                                   app.packageName !== 'com.android.vending';
+                
+                // Simplified and more inclusive definition of user apps
+                const isLikelyUserApp = !isSystemApp &&
+                    app.packageName.includes('.') &&
+                    (app.appName || app.name) &&
+                    (app.appName || app.name).length > 1;
+
+                // Very permissive inclusion criteria:
+                // 1. Our own app should always be included for testing
+                // 2. Any app with usage data (indicates recent use)
+                // 3. Any app with network usage (indicates it's been used)
+                // 4. User apps (non-system) that were recently installed
+                const isOurApp = app.packageName === 'com.mobilemonitor';
+                const isRecentlyInstalled = app.firstInstallTime &&
+                    (Date.now() - app.firstInstallTime < 30 * 24 * 60 * 60 * 1000); // 30 days
+
+                // Include apps if ANY of these conditions are met:
+                const shouldInclude = isOurApp ||
+                    hasUsageData ||
+                    hasNetworkUsage ||
+                    (isLikelyUserApp && (lastUsed > 0 || isRecentlyInstalled));
+                console.log(`App ${app.appName || app.name}: package=${app.packageName}, isLikelyUserApp=${isLikelyUserApp}, lastUsed=${lastUsed}, hasUsageData=${hasUsageData}, hasNetworkUsage=${hasNetworkUsage}, isOurApp=${isOurApp}, shouldInclude=${shouldInclude}`);
+                return shouldInclude;
+            })
+            .sort((a, b) => {
+                // Enhanced sorting with multiple criteria
+                const aLastUsed = a.lastUsedTimestamp || a.lastTimeUsed || 0;
+                const bLastUsed = b.lastUsedTimestamp || b.lastTimeUsed || 0;
+                const aUsageScore = (a.totalTimeInForeground || 0) + (a.launchCount || 0) * 1000;
+                const bUsageScore = (b.totalTimeInForeground || 0) + (b.launchCount || 0) * 1000;
+                const aNetworkScore = (a.dataUsage?.total || 0);
+                const bNetworkScore = (b.dataUsage?.total || 0);
+                // Our app gets priority for testing
+                if (a.packageName === 'com.mobilemonitor') {
+                    return -1;
+                }
+                if (b.packageName === 'com.mobilemonitor') {
+                    return 1;
+                }
+                // Primary sort: by last used time (if available)
+                if (aLastUsed !== bLastUsed) {
+                    return bLastUsed - aLastUsed;
+                }
+                // Secondary sort: by network usage (indicates recent activity)
+                if (aNetworkScore !== bNetworkScore) {
+                    return bNetworkScore - aNetworkScore;
+                }
+                // Tertiary sort: by usage score
+                return bUsageScore - aUsageScore;
+            })
             .slice(0, limit);
+        console.log('AppDataService: Filtered to', filtered.length, 'recent apps');
+        return filtered;
     }
 
     /**
@@ -293,5 +261,79 @@ export class AppDataService {
             safeApps: riskDistribution.noRisk.length,
             riskPercentage: Math.round((riskDistribution.highRisk.length / totalApps) * 100) || 0,
         };
+    }
+
+    /**
+     * Check if usage stats permission is granted
+     */
+    async checkUsageStatsPermission() {
+        if (!this.isNativeModuleAvailable) {
+            return false;
+        }
+        try {
+            return await NativeBridgeService.hasUsageStatsPermission();
+        } catch (error) {
+            console.error('Error checking usage stats permission:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Request usage stats permission
+     */
+    async requestUsageStatsPermission() {
+        if (!this.isNativeModuleAvailable) {
+            throw new Error('Native module not available');
+        }
+        try {
+            return await NativeBridgeService.requestUsageStatsPermission();
+        } catch (error) {
+            console.error('Error requesting usage stats permission:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get service status for production monitoring
+     */
+    async getServiceStatus() {
+        const hasUsagePermission = await this.checkUsageStatsPermission();
+        return {
+            isNativeModuleAvailable: this.isNativeModuleAvailable,
+            platform: Platform.OS,
+            nativeModuleInfo: this.nativeModuleInfo,
+            serviceVersion: '1.0.0',
+            hasUsageStatsPermission: hasUsagePermission,
+            capabilities: {
+                appListRetrieval: this.isNativeModuleAvailable,
+                appDetails: this.isNativeModuleAvailable,
+                permissionAnalysis: true,
+                riskAssessment: true,
+                dataUsageMonitoring: this.isNativeModuleAvailable,
+                usageStatsMonitoring: hasUsagePermission,
+                realTimeMonitoring: false,   // TODO: Implement when real-time monitoring is added
+            },
+            lastError: null, // TODO: Track last error for monitoring
+        };
+    }
+
+    /**
+     * Production-ready error handling
+     */
+    handleError(error, context) {
+        const errorInfo = {
+            message: error.message,
+            context,
+            timestamp: new Date().toISOString(),
+            platform: Platform.OS,
+            nativeModuleAvailable: this.isNativeModuleAvailable,
+        };
+
+        console.error('AppDataService Error:', errorInfo);
+
+        // TODO: In production, send to error monitoring service
+        // ErrorMonitoringService.reportError(errorInfo);
+
+        return errorInfo;
     }
 }

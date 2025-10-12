@@ -135,37 +135,25 @@ const AppListScreen = ({ route }) => {
     }, [allApps, searchQuery, selectedCategory, sortBy, riskLevel]);
 
     const navigateToAppDetail = (app) => {
-        // Generate realistic network and storage data
-        const generateNetworkData = () => {
-            const sent = Math.floor(Math.random() * 100) + 10; // 10-110 MB
-            const received = Math.floor(Math.random() * 200) + 50; // 50-250 MB
-            return {
-                dataSent: `${sent} MB`,
-                dataReceived: `${received} MB`,
-            };
+        // Use only real data - no mock generation
+        const formatAppSize = (bytes) => {
+            if (!bytes) return 'Unknown';
+            const mb = bytes / (1024 * 1024);
+            return `${Math.round(mb)} MB`;
         };
 
-        const generateStorageData = (appInfo) => {
-            const appSizeMB = appInfo.size ? Math.round(appInfo.size / (1024 * 1024)) : Math.floor(Math.random() * 150) + 10;
-            const dataSizeMB = Math.floor(Math.random() * 300) + 20;
-            return {
-                appSize: `${appSizeMB} MB`,
-                dataSize: `${dataSizeMB} MB`,
-            };
-        };
-
-        // Generate realistic data usage
-        const generateDataUsage = () => {
-            const totalMB = Math.floor(Math.random() * 300) + 50; // 50-350 MB
-            return `${totalMB} MB (last 30 days)`;
-        };
-
-        // Enhanced app data with network and storage information
+        // Enhanced app data with only real information
         const appData = {
             ...app,
-            dataUsage: generateDataUsage(),
-            networkActivity: generateNetworkData(),
-            storage: generateStorageData(app),
+            dataUsage: app.dataUsage ? `${app.dataUsage} (last 30 days)` : 'No data available',
+            networkActivity: {
+                dataSent: app.networkActivity?.dataSent || 'Unknown',
+                dataReceived: app.networkActivity?.dataReceived || 'Unknown',
+            },
+            storage: {
+                appSize: formatAppSize(app.size),
+                dataSize: app.dataSize || 'Unknown',
+            },
         };
 
         navigation.navigate('AppDetailScreen', { appData });

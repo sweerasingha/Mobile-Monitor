@@ -13,34 +13,31 @@ import RiskBadge from '../common/RiskBadge.js';
 const RecentApps = ({ apps, isLoading }) => {
     const navigation = useNavigation();
 
-    const generateRealisticData = (app) => {
-        // Generate realistic mobile and wifi data usage
-        const mobileUsage = Math.floor(Math.random() * 200) + 20; // 20-220 MB
-        const wifiUsage = Math.floor(Math.random() * 500) + 50; // 50-550 MB
-        const totalUsage = mobileUsage + wifiUsage;
+    console.log('RecentApps: Rendering with props:', {
+        appsCount: apps ? apps.length : 0,
+        isLoading,
+        firstApp: apps && apps.length > 0 ? apps[0].name : 'none',
+    });
 
-        return {
-            mobile: mobileUsage,
-            wifi: wifiUsage,
-            total: totalUsage,
-            sent: Math.floor(totalUsage * 0.3), // 30% sent
-            received: Math.floor(totalUsage * 0.7), // 70% received
-        };
-    };
+
 
     const handleAppPress = (app) => {
-        // Generate data if not available
-        const dataUsage = app.dataUsage || generateRealisticData(app);
+        // Use only real data - no fallback generation
+        const dataUsage = app.dataUsage || {
+            total: 0,
+            sent: 0,
+            received: 0,
+        };
 
         // Map the app data to match AppDetails screen expectations
         const appData = {
             name: app.name,
-            version: app.version || '1.0.0',
+            version: app.version || 'Unknown',
             packageName: app.packageName,
             icon: app.icon, // Include the icon data
             riskLevel: getRiskLevel(app),
             lastUsed: formatLastUsed(app.lastUsedTimestamp),
-            dataUsage: `${formatDataUsage(dataUsage.total)} (last 30 days)`,
+            dataUsage: dataUsage.total > 0 ? `${formatDataUsage(dataUsage.total)} (last 30 days)` : 'No data available',
             category: app.category,
             permissions: app.permissions || [],
             networkActivity: {
@@ -49,7 +46,7 @@ const RecentApps = ({ apps, isLoading }) => {
             },
             storage: {
                 appSize: formatSize(app.size),
-                dataSize: `${Math.floor(Math.random() * 400) + 100} MB`, // Random data size
+                dataSize: 'Unknown',
             },
         };
 
@@ -79,7 +76,7 @@ const RecentApps = ({ apps, isLoading }) => {
     // Helper function to format last used timestamp
     const formatLastUsed = (timestamp) => {
         if (!timestamp || timestamp === 0) {
-            return 'Never used';
+            return 'Usage stats unavailable';
         }
         const now = Date.now();
         const diff = now - timestamp;
@@ -87,25 +84,35 @@ const RecentApps = ({ apps, isLoading }) => {
         const hours = Math.floor(diff / (1000 * 60 * 60));
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-        if (minutes < 60) {
-            return `${minutes} minutes ago`;
+        if (diff < 60000) { // Less than 1 minute
+            return 'Just now';
+        } else if (minutes < 60) {
+            return `${minutes}m ago`;
         } else if (hours < 24) {
-            return `${hours} hours ago`;
+            return `${hours}h ago`;
+        } else if (days < 7) {
+            return `${days}d ago`;
         } else {
-            return `${days} days ago`;
+            return `${Math.floor(days / 7)}w ago`;
         }
     };
 
-    // Helper function to format data usage
-    const formatDataUsage = (mb) => {
-        if (!mb || mb === 0) {
-            return '0 MB';
+    // Helper function to format data usage (handles bytes and MB)
+    const formatDataUsage = (bytes) => {
+        if (!bytes || bytes === 0) {
+            return '0 B';
         }
-        if (mb < 1024) {
-            return `${mb.toFixed(1)} MB`;
-        } else {
-            return `${(mb / 1024).toFixed(2)} GB`;
+
+        // Convert bytes to appropriate unit
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        const size = bytes / Math.pow(k, i);
+
+        if (i === 0) {
+            return `${bytes} B`;
         }
+        return `${size.toFixed(i > 1 ? 1 : 0)} ${sizes[i]}`;
     };
 
     if (isLoading) {
@@ -149,20 +156,23 @@ const RecentApps = ({ apps, isLoading }) => {
                     <Text style={styles.lastUsed}>{formatLastUsed(item.lastUsedTimestamp)}</Text>
                 </View>
                 <View style={styles.dataUsageInfo}>
-                    {(() => {
-                        const dataUsage = item.dataUsage || generateRealisticData(item);
-                        return (
-                            <>
-                                <Text style={styles.dataUsageText}>
-                                    {formatDataUsage(dataUsage.total)}
-                                </Text>
-                                <Text style={styles.dataBreakdown}>
-                                    M: {formatDataUsage(dataUsage.mobile)} |
-                                    W: {formatDataUsage(dataUsage.wifi)}
-                                </Text>
-                            </>
-                        );
-                    })()}
+                    <Text style={styles.dataUsageText}>
+                        {item.dataUsage && item.dataUsage.total > 0
+                            ? formatDataUsage(item.dataUsage.total)
+                            : 'No data usage'
+                        }
+                    </Text>
+                    {item.dataUsage && item.dataUsage.total > 0 && (
+                        <Text style={styles.dataBreakdown}>
+                            Mobile: {formatDataUsage(item.dataUsage.mobile || 0)} |
+                            WiFi: {formatDataUsage(item.dataUsage.wifi || 0)}
+                        </Text>
+                    )}
+                    {item.totalTimeInForeground > 0 && (
+                        <Text style={styles.usageTime}>
+                            Used: {Math.round(item.totalTimeInForeground / 60000)}m today
+                        </Text>
+                    )}
                 </View>
             </View>
             <View style={styles.dataUsageIndicator}>
@@ -207,18 +217,17 @@ const getDataUsagePercentage = (currentApp, allApps) => {
         return '0%';
     }
 
-    const generateRealisticDataForCalc = (app) => {
-        const mobileUsage = Math.floor(Math.random() * 200) + 20;
-        const wifiUsage = Math.floor(Math.random() * 500) + 50;
-        return mobileUsage + wifiUsage;
-    };
+    const appsWithData = allApps.filter(app => app.dataUsage?.total > 0);
+    if (appsWithData.length === 0) {
+        return '0%';
+    }
 
-    const maxUsage = Math.max(...allApps.map(app => app.dataUsage?.total || generateRealisticDataForCalc(app)));
+    const maxUsage = Math.max(...appsWithData.map(app => app.dataUsage.total));
     if (maxUsage === 0) {
         return '0%';
     }
 
-    const currentUsage = currentApp.dataUsage?.total || generateRealisticDataForCalc(currentApp);
+    const currentUsage = currentApp.dataUsage?.total || 0;
     const percentage = Math.min((currentUsage / maxUsage) * 100, 100);
     return `${percentage}%`;
 };
@@ -308,6 +317,12 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#64748b',
         fontWeight: '500',
+    },
+    usageTime: {
+        fontSize: 11,
+        color: '#94a3b8',
+        fontWeight: '500',
+        marginTop: 2,
     },
     dataUsageIndicator: {
         width: 48,

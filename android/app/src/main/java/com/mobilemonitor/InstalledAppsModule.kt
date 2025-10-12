@@ -1,11 +1,16 @@
 package com.mobilemonitor
 
+import android.app.usage.NetworkStats
+import android.app.usage.NetworkStatsManager
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.content.pm.PackageInfo
 import android.app.usage.UsageStatsManager
 import android.content.Context
+import android.net.ConnectivityManager
 import android.os.Build
+import android.telephony.TelephonyManager
+import android.util.Log
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.text.SimpleDateFormat
@@ -80,9 +85,10 @@ class InstalledAppsModule(reactContext: ReactApplicationContext) : ReactContextB
                         }
                         
                         // Try to get usage stats (requires special permission)
-                        val usageStats = getUsageStats(packageInfo.packageName)
-                        appInfoMap.putDouble("lastTimeUsed", usageStats.toDouble())
-                        appInfoMap.putDouble("totalTimeInForeground", 0.0) // Placeholder
+                        val usageData = getUsageStatsDetailed(packageInfo.packageName)
+                        appInfoMap.putDouble("lastTimeUsed", usageData.first.toDouble())
+                        appInfoMap.putDouble("totalTimeInForeground", usageData.second.toDouble())
+                        appInfoMap.putInt("launchCount", usageData.third)
                         
                         apps.pushMap(appInfoMap)
                     } catch (e: Exception) {
@@ -144,9 +150,61 @@ class InstalledAppsModule(reactContext: ReactApplicationContext) : ReactContextB
             appInfo.putArray("permissions", permissions)
             appInfo.putArray("permissionDetails", permissionDetails)
             
+            // Add network usage data
+            try {
+                val networkUsage = getNetworkUsageForApp(packageName)
+                appInfo.putMap("networkUsage", networkUsage)
+            } catch (e: Exception) {
+                Log.w("InstalledAppsModule", "Could not get network usage for $packageName", e)
+            }
+            
             promise.resolve(appInfo)
         } catch (e: Exception) {
             promise.reject("GET_APP_DETAILS_ERROR", "Failed to get app details: ${e.message}", e)
+        }
+    }
+
+    @ReactMethod
+    fun getNetworkUsage(packageName: String, promise: Promise) {
+        try {
+            val networkUsage = getNetworkUsageForApp(packageName)
+            promise.resolve(networkUsage)
+        } catch (e: Exception) {
+            promise.reject("NETWORK_USAGE_ERROR", "Failed to get network usage: ${e.message}", e)
+        }
+    }
+
+    @ReactMethod
+    fun getAllAppsNetworkUsage(promise: Promise) {
+        try {
+            val allUsage = WritableNativeArray()
+            val packageManager = reactApplicationContext.packageManager
+            val installedPackages = packageManager.getInstalledPackages(0)
+            
+            for (packageInfo in installedPackages) {
+                val appInfo = packageInfo.applicationInfo ?: continue
+                if ((appInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0 ||
+                    (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0) {
+                    
+                    try {
+                        val appUsage = WritableNativeMap()
+                        appUsage.putString("packageName", packageInfo.packageName)
+                        appUsage.putString("appName", packageManager.getApplicationLabel(appInfo).toString())
+                        
+                        val networkUsage = getNetworkUsageForApp(packageInfo.packageName)
+                        appUsage.putMap("networkUsage", networkUsage)
+                        
+                        allUsage.pushMap(appUsage)
+                    } catch (e: Exception) {
+                        // Skip apps that we can't get usage for
+                        continue
+                    }
+                }
+            }
+            
+            promise.resolve(allUsage)
+        } catch (e: Exception) {
+            promise.reject("ALL_NETWORK_USAGE_ERROR", "Failed to get all network usage: ${e.message}", e)
         }
     }
 
@@ -207,9 +265,74 @@ class InstalledAppsModule(reactContext: ReactApplicationContext) : ReactContextB
 
     private fun getUsageStats(packageName: String): Long {
         return try {
+            // First check if we have usage stats permission
+            if (!hasUsageStatsPermissionInternal()) {
+                Log.w("InstalledAppsModule", "Usage stats permission not granted, returning 0 for lastTimeUsed")
+                return 0L
+            }
+
             val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val calendar = Calendar.getInstance()
-            calendar.add(Calendar.DAY_OF_YEAR, -1)
+            calendar.add(Calendar.DAY_OF_YEAR, -7) // Look back 7 days for more recent data
+            val startTime = calendar.timeInMillis
+            val endTime = System.currentTimeMillis()
+
+            // Try different intervals to get usage data
+            val intervals = arrayOf(
+                UsageStatsManager.INTERVAL_DAILY,
+                UsageStatsManager.INTERVAL_WEEKLY,
+                UsageStatsManager.INTERVAL_BEST
+            )
+
+            for (interval in intervals) {
+                try {
+                    val usageStatsList = usageStatsManager.queryUsageStats(interval, startTime, endTime)
+                    if (usageStatsList != null && usageStatsList.isNotEmpty()) {
+                        val usageStat = usageStatsList.find { it.packageName == packageName }
+                        if (usageStat != null && usageStat.lastTimeUsed > 0) {
+                            Log.d("InstalledAppsModule", "Found usage data for $packageName: lastTimeUsed=${usageStat.lastTimeUsed}")
+                            return usageStat.lastTimeUsed
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w("InstalledAppsModule", "Error querying usage stats with interval $interval", e)
+                    continue
+                }
+            }
+
+            // If no usage found, try a longer period (30 days)
+            calendar.add(Calendar.DAY_OF_YEAR, -23) // Total 30 days back
+            val longerStartTime = calendar.timeInMillis
+            
+            try {
+                val usageStatsList = usageStatsManager.queryUsageStats(
+                    UsageStatsManager.INTERVAL_MONTHLY,
+                    longerStartTime,
+                    endTime
+                )
+                val usageStat = usageStatsList?.find { it.packageName == packageName }
+                val lastUsed = usageStat?.lastTimeUsed ?: 0L
+                Log.d("InstalledAppsModule", "Usage stats for $packageName over 30 days: lastTimeUsed=$lastUsed")
+                return lastUsed
+            } catch (e: Exception) {
+                Log.w("InstalledAppsModule", "Error querying monthly usage stats for $packageName", e)
+                return 0L
+            }
+        } catch (e: Exception) {
+            Log.e("InstalledAppsModule", "Error getting usage stats for $packageName", e)
+            0L
+        }
+    }
+
+    private fun getUsageStatsDetailed(packageName: String): Triple<Long, Long, Int> {
+        return try {
+            if (!hasUsageStatsPermissionInternal()) {
+                return Triple(0L, 0L, 0)
+            }
+
+            val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val calendar = Calendar.getInstance()
+            calendar.add(Calendar.DAY_OF_YEAR, -7)
             val startTime = calendar.timeInMillis
             val endTime = System.currentTimeMillis()
 
@@ -220,9 +343,43 @@ class InstalledAppsModule(reactContext: ReactApplicationContext) : ReactContextB
             )
 
             val usageStat = usageStatsList?.find { it.packageName == packageName }
-            usageStat?.lastTimeUsed ?: 0L
+            if (usageStat != null) {
+                val lastTimeUsed = usageStat.lastTimeUsed
+                val totalTimeInForeground = usageStat.totalTimeInForeground
+                
+                // Get launch count using events
+                val events = usageStatsManager.queryEvents(startTime, endTime)
+                var launchCount = 0
+                while (events.hasNextEvent()) {
+                    val event = android.app.usage.UsageEvents.Event()
+                    events.getNextEvent(event)
+                    if (event.packageName == packageName && 
+                        event.eventType == android.app.usage.UsageEvents.Event.ACTIVITY_RESUMED) {
+                        launchCount++
+                    }
+                }
+                
+                return Triple(lastTimeUsed, totalTimeInForeground, launchCount)
+            }
+            
+            Triple(0L, 0L, 0)
         } catch (e: Exception) {
-            0L
+            Log.e("InstalledAppsModule", "Error getting detailed usage stats for $packageName", e)
+            Triple(0L, 0L, 0)
+        }
+    }
+
+    private fun hasUsageStatsPermissionInternal(): Boolean {
+        return try {
+            val appOpsManager = reactApplicationContext.getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+            val mode = appOpsManager.checkOpNoThrow(
+                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                reactApplicationContext.packageName
+            )
+            mode == android.app.AppOpsManager.MODE_ALLOWED
+        } catch (e: Exception) {
+            false
         }
     }
 
@@ -247,5 +404,150 @@ class InstalledAppsModule(reactContext: ReactApplicationContext) : ReactContextB
         bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 80, byteArrayOutputStream)
         val byteArray = byteArrayOutputStream.toByteArray()
         return "data:image/png;base64," + android.util.Base64.encodeToString(byteArray, android.util.Base64.DEFAULT)
+    }
+
+    private fun getNetworkUsageForApp(packageName: String): WritableMap {
+        val networkData = WritableNativeMap()
+        
+        try {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+                // NetworkStatsManager not available before API 23
+                networkData.putDouble("mobileRx", 0.0)
+                networkData.putDouble("mobileTx", 0.0)
+                networkData.putDouble("wifiRx", 0.0)
+                networkData.putDouble("wifiTx", 0.0)
+                networkData.putDouble("totalRx", 0.0)
+                networkData.putDouble("totalTx", 0.0)
+                return networkData
+            }
+
+            val networkStatsManager = reactApplicationContext.getSystemService(Context.NETWORK_STATS_SERVICE) as? NetworkStatsManager
+            if (networkStatsManager == null) {
+                networkData.putDouble("mobileRx", 0.0)
+                networkData.putDouble("mobileTx", 0.0)
+                networkData.putDouble("wifiRx", 0.0)
+                networkData.putDouble("wifiTx", 0.0)
+                networkData.putDouble("totalRx", 0.0)
+                networkData.putDouble("totalTx", 0.0)
+                return networkData
+            }
+
+            val packageManager = reactApplicationContext.packageManager
+            val packageInfo = packageManager.getPackageInfo(packageName, 0)
+            val uid = packageInfo.applicationInfo?.uid ?: return networkData
+
+            // Get usage for the last 30 days
+            val calendar = Calendar.getInstance()
+            val endTime = calendar.timeInMillis
+            calendar.add(Calendar.DAY_OF_YEAR, -30)
+            val startTime = calendar.timeInMillis
+
+            var mobileRx = 0L
+            var mobileTx = 0L
+            var wifiRx = 0L
+            var wifiTx = 0L
+
+            try {
+                // Mobile data usage
+                val mobileNetworkStats = networkStatsManager.queryDetailsForUid(
+                    ConnectivityManager.TYPE_MOBILE,
+                    getSubscriberId(),
+                    startTime,
+                    endTime,
+                    uid
+                )
+
+                while (mobileNetworkStats.hasNextBucket()) {
+                    val bucket = NetworkStats.Bucket()
+                    mobileNetworkStats.getNextBucket(bucket)
+                    mobileRx += bucket.rxBytes
+                    mobileTx += bucket.txBytes
+                }
+                mobileNetworkStats.close()
+            } catch (e: Exception) {
+                Log.w("InstalledAppsModule", "Could not get mobile stats for $packageName", e)
+            }
+
+            try {
+                // WiFi data usage
+                val wifiNetworkStats = networkStatsManager.queryDetailsForUid(
+                    ConnectivityManager.TYPE_WIFI,
+                    null,
+                    startTime,
+                    endTime,
+                    uid
+                )
+
+                while (wifiNetworkStats.hasNextBucket()) {
+                    val bucket = NetworkStats.Bucket()
+                    wifiNetworkStats.getNextBucket(bucket)
+                    wifiRx += bucket.rxBytes
+                    wifiTx += bucket.txBytes
+                }
+                wifiNetworkStats.close()
+            } catch (e: Exception) {
+                Log.w("InstalledAppsModule", "Could not get WiFi stats for $packageName", e)
+            }
+
+            networkData.putDouble("mobileRx", mobileRx.toDouble())
+            networkData.putDouble("mobileTx", mobileTx.toDouble())
+            networkData.putDouble("wifiRx", wifiRx.toDouble())
+            networkData.putDouble("wifiTx", wifiTx.toDouble())
+            networkData.putDouble("totalRx", (mobileRx + wifiRx).toDouble())
+            networkData.putDouble("totalTx", (mobileTx + wifiTx).toDouble())
+
+        } catch (e: Exception) {
+            Log.e("InstalledAppsModule", "Error getting network usage for $packageName", e)
+            networkData.putDouble("mobileRx", 0.0)
+            networkData.putDouble("mobileTx", 0.0)
+            networkData.putDouble("wifiRx", 0.0)
+            networkData.putDouble("wifiTx", 0.0)
+            networkData.putDouble("totalRx", 0.0)
+            networkData.putDouble("totalTx", 0.0)
+        }
+
+        return networkData
+    }
+
+    private fun getSubscriberId(): String? {
+        return try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Starting from Android 10, this method is restricted
+                null
+            } else {
+                val telephonyManager = reactApplicationContext.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+                telephonyManager?.subscriberId
+            }
+        } catch (e: Exception) {
+            Log.w("InstalledAppsModule", "Could not get subscriber ID", e)
+            null
+        }
+    }
+
+    @ReactMethod
+    fun hasUsageStatsPermission(promise: Promise) {
+        try {
+            val appOpsManager = reactApplicationContext.getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+            val mode = appOpsManager.checkOpNoThrow(
+                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                reactApplicationContext.packageName
+            )
+            promise.resolve(mode == android.app.AppOpsManager.MODE_ALLOWED)
+        } catch (e: Exception) {
+            promise.reject("PERMISSION_CHECK_ERROR", "Failed to check usage stats permission: ${e.message}", e)
+        }
+    }
+
+    @ReactMethod
+    fun requestUsageStatsPermission(promise: Promise) {
+        try {
+            val intent = android.content.Intent(android.provider.Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+            reactApplicationContext.startActivity(intent)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("PERMISSION_REQUEST_ERROR", "Failed to request usage stats permission: ${e.message}", e)
+        }
     }
 }

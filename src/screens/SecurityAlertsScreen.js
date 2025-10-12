@@ -24,75 +24,25 @@ const SecurityAlertsScreen = () => {
     });
 
     useEffect(() => {
-        loadSecurityAlerts();
+        loadSecurityAlerts().catch(error => {
+            console.error('Failed to load security alerts:', error);
+        });
     }, []);
 
-    const loadSecurityAlerts = () => {
-        // Mock security alerts data
-        const mockAlerts = [
-            {
-                id: '1',
-                type: 'HIGH_RISK_PERMISSION',
-                severity: 'HIGH',
-                title: 'New High-Risk Permission Request',
-                description: 'Facebook requested access to your microphone',
-                timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-                appName: 'Facebook',
-                packageName: 'com.facebook.katana',
-                isRead: false,
-                action: 'Review permission in settings'
-            },
-            {
-                id: '2',
-                type: 'SUSPICIOUS_ACTIVITY',
-                severity: 'MEDIUM',
-                title: 'Unusual Background Activity',
-                description: 'TikTok has been active in background for extended periods',
-                timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-                appName: 'TikTok',
-                packageName: 'com.zhiliaoapp.musically',
-                isRead: false,
-                action: 'Check app usage statistics'
-            },
-            {
-                id: '3',
-                type: 'DATA_USAGE_SPIKE',
-                severity: 'MEDIUM',
-                title: 'Unusual Data Usage',
-                description: 'Instagram used 200MB more data than usual today',
-                timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4), // 4 hours ago
-                appName: 'Instagram',
-                packageName: 'com.instagram.android',
-                isRead: true,
-                action: 'Monitor data usage'
-            },
-            {
-                id: '4',
-                type: 'NEW_APP_INSTALLED',
-                severity: 'LOW',
-                title: 'New App with High-Risk Permissions',
-                description: 'WhatsApp Business was installed with camera and location access',
-                timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-                appName: 'WhatsApp Business',
-                packageName: 'com.whatsapp.w4b',
-                isRead: true,
-                action: 'Review app permissions'
-            },
-            {
-                id: '5',
-                type: 'PERMISSION_CHANGE',
-                severity: 'MEDIUM',
-                title: 'Permission Settings Changed',
-                description: 'Spotify gained access to device location',
-                timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48), // 2 days ago
-                appName: 'Spotify',
-                packageName: 'com.spotify.music',
-                isRead: true,
-                action: 'Verify permission necessity'
-            }
-        ];
-
-        setAlerts(mockAlerts);
+    const loadSecurityAlerts = async () => {
+        try {
+            // TODO: Implement real security monitoring service
+            // For now, start with empty alerts until proper monitoring is implemented
+            console.log('Loading security alerts...');
+            
+            // This would connect to a real security monitoring service
+            // const realAlerts = await SecurityMonitoringService.getAlerts();
+            
+            setAlerts([]);
+        } catch (error) {
+            console.error('Error loading security alerts:', error);
+            setAlerts([]);
+        }
     };
 
     const handleAlertPress = (alert) => {

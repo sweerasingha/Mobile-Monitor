@@ -14,10 +14,11 @@ import { useAppInfo } from '../hooks/useAppInfo';
 import RecentApps from '../components/dashboard/RecentApps';
 import { useNavigation } from '@react-navigation/native';
 import RiskCategoryButton from '../components/common/RiskCategoryButton';
+import DebugInfo from '../components/common/DebugInfo';
 
 const DashboardScreen = () => {
     const navigation = useNavigation();
-    const { getInstalledApps, categorizeAppsByRisk, loading, error } = useAppInfo();
+    const { getInstalledApps, categorizeAppsByRisk, getRecentApps, loading, error, appDataService } = useAppInfo();
     const [appCategories, setAppCategories] = useState({
         highRisk: [],
         mediumRisk: [],
@@ -26,21 +27,29 @@ const DashboardScreen = () => {
     });
     const [recentApps, setRecentApps] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [hasUsagePermission, setHasUsagePermission] = useState(false);
+    const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
 
     useEffect(() => {
-        const fetchApps = async () => {
+        const checkPermissionAndFetchApps = async () => {
             try {
                 setIsLoading(true);
+                // Check usage stats permission
+                const hasPermission = await appDataService.checkUsageStatsPermission();
+                setHasUsagePermission(hasPermission);
+                if (!hasPermission) {
+                    setShowPermissionPrompt(true);
+                }
                 const apps = await getInstalledApps();
 
                 if (apps && apps.length > 0) {
                     const categorizedApps = categorizeAppsByRisk(apps);
                     setAppCategories(categorizedApps);
 
-                    // Get most recently used apps
-                    const recent = apps
-                        .sort((a, b) => (b.lastUsedTimestamp || 0) - (a.lastUsedTimestamp || 0))
-                        .slice(0, 5);
+                    // Get most recently used apps using the service method
+                    console.log('Dashboard: All apps before filtering:', apps.length);
+                    const recent = getRecentApps(apps, 5);
+                    console.log('Dashboard: Recent apps after filtering:', recent.length);
                     setRecentApps(recent);
                 } else {
                     // Handle empty apps case
@@ -66,8 +75,43 @@ const DashboardScreen = () => {
             }
         };
 
-        fetchApps();
-    }, [getInstalledApps, categorizeAppsByRisk]);
+        checkPermissionAndFetchApps();
+    }, [getInstalledApps, categorizeAppsByRisk, getRecentApps, appDataService]);
+
+    const handleRequestUsagePermission = async () => {
+        try {
+            await appDataService.requestUsageStatsPermission();
+            Alert.alert(
+                'Permission Required',
+                'Please grant Usage Access permission in the Settings app, then return to this app. The app will refresh automatically.',
+                [
+                    {
+                        text: 'OK',
+                        onPress: () => {
+                            // Check permission again after user returns
+                            setTimeout(async () => {
+                                const hasPermission = await appDataService.checkUsageStatsPermission();
+                                setHasUsagePermission(hasPermission);
+                                if (hasPermission) {
+                                    setShowPermissionPrompt(false);
+                                    // Refresh the app data
+                                    const apps = await getInstalledApps();
+                                    if (apps && apps.length > 0) {
+                                        const categorizedApps = categorizeAppsByRisk(apps);
+                                        setAppCategories(categorizedApps);
+                                        const recent = getRecentApps(apps, 5);
+                                        setRecentApps(recent);
+                                    }
+                                }
+                            }, 1000);
+                        },
+                    },
+                ]
+            );
+        } catch (err) {
+            Alert.alert('Error', 'Failed to request permission: ' + err.message);
+        }
+    };
 
     const navigateToAppList = (riskLevel) => {
         navigation.navigate('AppListScreen', { riskLevel });
@@ -122,9 +166,7 @@ const DashboardScreen = () => {
                                 if (apps) {
                                     const categorizedApps = categorizeAppsByRisk(apps);
                                     setAppCategories(categorizedApps);
-                                    const recent = apps
-                                        .sort((a, b) => (b.lastUsedTimestamp || 0) - (a.lastUsedTimestamp || 0))
-                                        .slice(0, 5);
+                                    const recent = getRecentApps(apps, 5);
                                     setRecentApps(recent);
                                 }
                                 setIsLoading(false);
@@ -156,6 +198,22 @@ const DashboardScreen = () => {
                     </View>
                 </TouchableOpacity>
             </View>
+
+            {/* Usage Permission Prompt */}
+            {showPermissionPrompt && (
+                <View style={styles.permissionPrompt}>
+                    <Text style={styles.permissionTitle}>⚠️ Usage Access Required</Text>
+                    <Text style={styles.permissionText}>
+                        To show recent apps and usage data, please grant Usage Access permission.
+                    </Text>
+                    <TouchableOpacity
+                        style={styles.permissionButton}
+                        onPress={handleRequestUsagePermission}
+                    >
+                        <Text style={styles.permissionButtonText}>Grant Permission</Text>
+                    </TouchableOpacity>
+                </View>
+            )}
 
             {/* Modern Dashboard Cards */}
             <View style={styles.dashboardCards}>
@@ -222,7 +280,7 @@ const DashboardScreen = () => {
                 {/* Recent Apps Section */}
                 <View style={styles.recentAppsContainer}>
                     <View style={styles.recentAppsHeader}>
-                        <Text style={styles.sectionTitle}>Recent Apps</Text>
+                        <Text style={styles.sectionTitle}>Recent Apps (Debug)</Text>
                         <TouchableOpacity onPress={navigateToAppListScreen}>
                             <View style={styles.viewAllButton}>
                                 <Text style={styles.viewAllButtonText}>View All</Text>
@@ -231,6 +289,8 @@ const DashboardScreen = () => {
                     </View>
 
                     <RecentApps apps={recentApps} isLoading={false} />
+                    {/* Debug Info - temporary for troubleshooting */}
+                    <DebugInfo apps={Object.values(appCategories).flat()} recentApps={recentApps} />
                 </View>
             </ScrollView>
 
@@ -603,6 +663,47 @@ const styles = StyleSheet.create({
     },
     activeIconText: {
         fontSize: 22,
+    },
+    permissionPrompt: {
+        backgroundColor: '#fff3cd',
+        borderColor: '#ffeaa7',
+        borderWidth: 1,
+        borderRadius: 12,
+        padding: 16,
+        margin: 16,
+        marginTop: 8,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    permissionTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#856404',
+        marginBottom: 8,
+    },
+    permissionText: {
+        fontSize: 14,
+        color: '#856404',
+        marginBottom: 12,
+        lineHeight: 20,
+    },
+    permissionButton: {
+        backgroundColor: '#ffc107',
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 8,
+        alignSelf: 'flex-start',
+    },
+    permissionButtonText: {
+        color: '#212529',
+        fontWeight: '600',
+        fontSize: 14,
     },
 });
 

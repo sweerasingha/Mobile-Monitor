@@ -38,42 +38,34 @@ const DataUsageScreen = () => {
         try {
             setIsLoading(true);
             const installedApps = await getInstalledApps();
-            // Simulate data usage information for each app
+            
+            // TODO: Implement real data usage monitoring
+            // For now, use only real data from the apps (if available)
             const appsWithDataUsage = installedApps.map(app => ({
                 ...app,
-                dataUsage: {
-                    total: generateRandomDataUsage(),
-                    mobile: generateRandomDataUsage(0.3),
-                    wifi: generateRandomDataUsage(0.7),
-                    sent: generateRandomDataUsage(0.2),
-                    received: generateRandomDataUsage(0.8),
+                dataUsage: app.dataUsage || {
+                    total: 0,
+                    mobile: 0,
+                    wifi: 0,
+                    sent: 0,
+                    received: 0,
                 },
-                dailyUsage: generateDailyUsage(parseInt(filterPeriod)),
+                dailyUsage: app.dailyUsage || [],
             }));
 
             setApps(appsWithDataUsage);
-            // Calculate total data usage
-            const total = appsWithDataUsage.reduce((sum, app) => sum + app.dataUsage.total, 0);
+            // Calculate total data usage from real data only
+            const total = appsWithDataUsage.reduce((sum, app) => sum + (app.dataUsage?.total || 0), 0);
             setTotalDataUsage(total);
         } catch (error) {
             console.error('Error fetching apps with data usage:', error);
-            Alert.alert('Error', 'Failed to load app data usage information');
+            Alert.alert('Error', 'Failed to load app data usage information. Data usage monitoring requires native implementation.');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const generateRandomDataUsage = (multiplier = 1) => {
-        // Generate random data usage in MB (0-1000MB)
-        return Math.floor(Math.random() * 1000 * multiplier);
-    };
 
-    const generateDailyUsage = (days) => {
-        return Array.from({ length: days }, (_, i) => ({
-            day: i + 1,
-            usage: generateRandomDataUsage(0.1),
-        }));
-    };
 
     const applyFiltersAndSort = () => {
         let filtered = [...apps];
@@ -207,7 +199,13 @@ const DataUsageScreen = () => {
                     <View
                         style={[
                             styles.dataUsageBarFill,
-                            { width: `${Math.min((item.dataUsage.total / Math.max(...filteredApps.map(a => a.dataUsage.total))) * 100, 100)}%` }
+                            { 
+                                width: (() => {
+                                    const maxUsage = Math.max(...filteredApps.map(a => a.dataUsage?.total || 0));
+                                    if (maxUsage === 0) return '0%';
+                                    return `${Math.min(((item.dataUsage?.total || 0) / maxUsage) * 100, 100)}%`;
+                                })()
+                            }
                         ]}
                     />
                 </View>

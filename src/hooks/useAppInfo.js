@@ -18,7 +18,6 @@ export const useAppInfo = () => {
                 console.warn('Failed to check initial permissions:', err);
             }
         };
-        
         initializePermissions();
     }, []);
 
@@ -117,13 +116,14 @@ export const useAppInfo = () => {
         return PermissionService.PERMISSION_RISKS[permission] || {
             level: 'LOW',
             description: 'System permission',
-            category: 'System'
+            category: 'System',
         };
     }, []);
 
     return {
         loading,
         error,
+        appDataService,
         getInstalledApps,
         categorizeAppsByRisk,
         getAppDetails,
@@ -135,6 +135,6 @@ export const useAppInfo = () => {
         checkUsageStatsPermission,
         requestUsageStatsPermission,
         analyzeAppPermissions,
-        getPermissionRisk
+        getPermissionRisk,
     };
 };
