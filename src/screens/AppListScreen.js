@@ -129,7 +129,6 @@ const AppListScreen = ({ route }) => {
     }, [allApps, searchQuery, selectedCategory, sortBy, riskLevel]);
 
     const navigateToAppDetail = (app) => {
-        // Use only real data - no mock generation
         const formatAppSize = (bytes) => {
             if (!bytes) {
                 return 'Unknown';

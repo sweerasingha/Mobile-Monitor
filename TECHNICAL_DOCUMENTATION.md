@@ -76,7 +76,6 @@ graph TB
 **AppDataService.js**
 - Primary data management service
 - Handles app data retrieval and processing
-- Manages mock data fallback when native modules unavailable
 - Processes app categorization and risk analysis
 
 ```javascript
@@ -142,9 +141,21 @@ graph LR
 **Key Features:**
 - Real-time app statistics
 - Risk-based categorization
-- Recent apps with data usage visualization
+- Recent apps with data usage visualization (progress bars)
 - Modern card-based UI design
 - Bottom navigation integration
+
+**Data Usage Progress Bars:**
+```javascript
+// Calculates relative data usage percentage for visual progress bars
+const getDataUsagePercentage = (currentApp, allApps) => {
+    const appsWithData = allApps.filter(app => app.dataUsage?.total > 0);
+    const maxUsage = Math.max(...appsWithData.map(app => app.dataUsage.total));
+    const currentUsage = currentApp.dataUsage?.total || 0;
+    const percentage = Math.min((currentUsage / maxUsage) * 100, 100);
+    return `${percentage}%`;
+};
+```
 
 #### App Detail Screen
 ```mermaid
@@ -237,15 +248,6 @@ PERMISSION_RISKS = {
 #### Loading States
 - Component-level loading indicators
 - Error boundary handling
-- Graceful fallbacks to mock data
-
-#### Mock Data Implementation
-```javascript
-// Fallback Strategy:
-1. Attempt native module usage
-2. If unavailable, use comprehensive mock data
-3. Maintain full functionality in development
-```
 
 ### 8. Platform Integration
 
@@ -304,39 +306,3 @@ npx react-native run-ios      # iOS
 - **Babel Configuration**: ES6+ support and transformations
 - **TypeScript Configuration**: Type checking and compilation
 - **Gradle Configuration**: Android build optimization
-
-### Testing Strategy
-- Jest unit tests
-- React Native Testing Library
-- Component testing patterns
-- Service layer testing
-
-## Future Enhancements
-
-### Planned Features
-1. **Real-time Monitoring**: Live app usage tracking
-2. **Advanced Analytics**: Historical data analysis
-3. **Security Alerts**: Proactive threat detection
-4. **Parental Controls**: Child safety features
-5. **Cloud Sync**: Cross-device synchronization
-
-### Technical Improvements
-1. **Performance Optimization**: Native module optimization
-2. **UI/UX Enhancement**: Advanced animations and transitions
-3. **Accessibility**: Full WCAG compliance
-4. **Internationalization**: Multi-language support
-5. **Advanced Permissions**: Granular permission control
-
-## Troubleshooting
-
-### Common Issues
-1. **Native Module Not Found**: Falls back to mock data automatically
-2. **Permission Denied**: Guides user to device settings
-3. **App Crashes**: Error boundaries prevent complete failures
-4. **Performance Issues**: Lazy loading and optimization techniques
-
-### Development Tips
-1. Use React Native Debugger for debugging
-2. Enable Flipper for advanced debugging
-3. Test on multiple device configurations
-4. Use mock data for consistent development experience

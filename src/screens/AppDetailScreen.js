@@ -34,7 +34,7 @@ const AppDetailScreen = ({ route }) => {
             appSize: '150 MB',
             dataSize: '350 MB',
         },
-        icon: null, // This will be populated from your mock data
+        icon: null,
     };
 
     // Helper function to format last used time

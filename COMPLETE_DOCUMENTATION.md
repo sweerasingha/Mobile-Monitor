@@ -51,7 +51,7 @@ graph TB
     subgraph "Data Layer"
         H[Native Modules]
         I[Device APIs]
-        J[Mock Data System]
+
     end
     
     subgraph "Platform Layer"
@@ -89,7 +89,6 @@ graph TB
 
 #### Data Integration
 - **Native Modules**: Platform-specific data access
-- **Mock System**: Development and fallback data
 - **API Abstraction**: Unified data access interface
 
 ## Feature Specifications
@@ -109,8 +108,16 @@ graph TB
 
 #### Recent Apps Section
 - **Usage Timeline**: Recently accessed applications
-- **Data Usage Indicators**: Visual data consumption metrics
+- **Data Usage Indicators**: Visual data consumption metrics with progress bars
+- **Relative Usage Bars**: Progress bars showing data usage relative to highest-consuming app
 - **Quick Access**: Direct navigation to app details
+
+#### Data Usage Progress Bars
+The recent apps display includes visual progress bars that show:
+- **Relative Data Usage**: Each app's data consumption compared to the app using most data
+- **Visual Comparison**: Easy visual comparison between apps' data usage
+- **4px Progress Bars**: Compact horizontal bars with blue fill (`#3b82f6`)
+- **Percentage-based Fill**: Width calculated as percentage of maximum usage among recent apps
 
 ### App Detail Features
 
@@ -207,32 +214,6 @@ const useAppInfo = () => {
     // Additional methods
   };
 };
-```
-
-#### Service Architecture
-```javascript
-// AppDataService Class
-export class AppDataService {
-  constructor() {
-    this.useMockData = !InstalledApps;
-  }
-  
-  async getInstalledApps() {
-    if (this.useMockData) {
-      return this.processMockData(mockInstalledApps);
-    }
-    // Native implementation
-  }
-  
-  processAppData(rawApps) {
-    return rawApps.map(app => ({
-      id: app.packageName || generateId(),
-      name: app.appName || 'Unknown App',
-      // Additional processing
-      riskAnalysis: PermissionService.analyzeAppRisk(app.permissions)
-    }));
-  }
-}
 ```
 
 ### Permission Analysis Algorithm
@@ -581,7 +562,6 @@ describe('PermissionService', () => {
 - **Service Integration**: Test service layer interactions
 - **Navigation Testing**: Verify screen navigation flows
 - **Permission Testing**: Test permission request flows
-- **Mock Data Testing**: Validate fallback data systems
 
 #### User Interface Testing
 - **Component Testing**: Individual component functionality
@@ -621,6 +601,8 @@ npm run build:ios
 - **Feature Updates**: New feature development and deployment
 - **Bug Fixes**: Issue resolution and patch releases
 - **Performance Improvements**: Ongoing optimization efforts
+- **Code Quality**: Continuous code cleanup and lint compliance
+- **Debug Removal**: Ensure production builds are clean of debug artifacts
 
 #### Monitoring & Analytics
 - **Crash Monitoring**: Application crash tracking and resolution

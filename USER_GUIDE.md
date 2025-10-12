@@ -62,7 +62,10 @@ Four colorful buttons showing your apps organized by risk level:
 🟢 **No Risk Apps** - Completely safe
 
 #### **Recent Apps**
-Shows the apps you've used most recently with data usage information
+Shows the apps you've used most recently with:
+- Data usage information
+- Visual progress bars showing relative data consumption
+- Quick access to detailed app information
 
 ---
 
@@ -193,13 +196,25 @@ Consider removing an app if:
 
 ---
 
-## Understanding Data Usage
+### Understanding Data Usage
 
 ### What the Numbers Mean
 
 When you see data usage like "150 MB":
 - **MB = Megabytes** (smaller amount)
 - **GB = Gigabytes** (1 GB = 1,000 MB, larger amount)
+
+### Visual Progress Bars
+
+In the Recent Apps section, you'll see **blue progress bars** next to each app:
+- **Full bar (100%)** = The app that uses the most data among your recent apps
+- **Partial bar (50%)** = App uses half as much data as the highest-consuming app  
+- **Empty bar (0%)** = App has used no data recently
+
+**This helps you quickly see:**
+- Which apps are your biggest data users
+- How apps compare to each other
+- Which apps might be using unexpected amounts of data
 
 ### Data Usage Breakdown
 
@@ -210,6 +225,7 @@ When you see data usage like "150 MB":
 - High mobile data usage might increase your phone bill
 - Some apps use more data than others
 - You can see which apps are "data hungry"
+- Progress bars help you quickly spot heavy data users
 
 ---
 
