@@ -23,12 +23,9 @@ export class NativeBridgeService {
             throw new Error('Native module InstalledApps not available');
         }
         try {
-            console.log('NativeBridgeService: Calling native getInstalledApps');
             const apps = await InstalledApps.getInstalledApps();
-            console.log('NativeBridgeService: Received', apps?.length || 0, 'apps from native module');
             return apps || [];
         } catch (error) {
-            console.error('NativeBridgeService: Error getting installed apps:', error);
             throw new Error(`Failed to get installed apps: ${error.message}`);
         }
     }
@@ -43,12 +40,10 @@ export class NativeBridgeService {
             throw new Error('Package name is required');
         }
         try {
-            console.log('NativeBridgeService: Getting app details for:', packageName);
-            const details = await InstalledApps.getAppDetails(packageName);
-            return details;
+            const appDetails = await InstalledApps.getAppDetails(packageName);
+            return appDetails;
         } catch (error) {
-            console.error('NativeBridgeService: Error getting app details:', error);
-            throw new Error(`Failed to get app details for ${packageName}: ${error.message}`);
+            throw new Error(`Failed to get app details: ${error.message}`);
         }
     }
     /**
@@ -62,11 +57,8 @@ export class NativeBridgeService {
             throw new Error('Package name is required');
         }
         try {
-            console.log('NativeBridgeService: Getting network usage for:', packageName);
-
             // Check if the method exists before calling it
             if (typeof InstalledApps.getNetworkUsage !== 'function') {
-                console.warn('NativeBridgeService: getNetworkUsage method not available - may need app rebuild');
                 return {
                     mobileRx: 0,
                     mobileTx: 0,
@@ -81,8 +73,7 @@ export class NativeBridgeService {
             const usage = await InstalledApps.getNetworkUsage(packageName);
             return usage;
         } catch (error) {
-            console.error('NativeBridgeService: Error getting network usage:', error);
-            // Return zero usage instead of throwing error for better UX
+            // Return default values instead of throwing, so apps can still be listed
             return {
                 mobileRx: 0,
                 mobileTx: 0,
@@ -102,15 +93,12 @@ export class NativeBridgeService {
             throw new Error('Native module InstalledApps not available');
         }
         if (Platform.OS !== 'android') {
-            console.warn('NativeBridgeService: getAllAppsNetworkUsage not supported on iOS');
             return [];
         }
         try {
-            console.log('NativeBridgeService: Getting network usage for all apps');
             const usage = await InstalledApps.getAllAppsNetworkUsage();
             return usage || [];
         } catch (error) {
-            console.error('NativeBridgeService: Error getting all apps network usage:', error);
             return [];
         }
     }
@@ -123,10 +111,8 @@ export class NativeBridgeService {
         }
         try {
             const hasPermission = await InstalledApps.hasUsageStatsPermission();
-            console.log('NativeBridgeService: Usage stats permission:', hasPermission);
             return hasPermission;
         } catch (error) {
-            console.error('NativeBridgeService: Error checking usage stats permission:', error);
             return false;
         }
     }
@@ -138,15 +124,12 @@ export class NativeBridgeService {
             throw new Error('Native module InstalledApps not available');
         }
         if (Platform.OS !== 'android') {
-            console.warn('NativeBridgeService: Usage stats permission not applicable on iOS');
             return false;
         }
         try {
-            console.log('NativeBridgeService: Requesting usage stats permission');
             const result = await InstalledApps.requestUsageStatsPermission();
             return result;
         } catch (error) {
-            console.error('NativeBridgeService: Error requesting usage stats permission:', error);
             throw new Error(`Failed to request usage stats permission: ${error.message}`);
         }
     }
@@ -264,7 +247,6 @@ export class NativeBridgeService {
                 },
             };
         } catch (error) {
-            console.warn('NativeBridgeService: Could not enhance app with network usage:', error);
             return app;
         }
     }

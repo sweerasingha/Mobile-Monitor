@@ -43,13 +43,10 @@ const AppListScreen = ({ route }) => {
     useEffect(() => {
         const fetchApps = async () => {
         try {
-            console.log('AppListScreen: Starting to fetch apps...');
             setLoading(true);
             const apps = await getInstalledApps();
-            console.log('AppListScreen: Received apps:', apps?.length || 0);
 
             if (!apps || apps.length === 0) {
-                console.log('AppListScreen: No apps received, setting empty array');
                 setAllApps([]);
                 return;
             }
@@ -69,10 +66,9 @@ const AppListScreen = ({ route }) => {
                 return { ...app, riskLevel: risk };
             });
 
-            console.log('AppListScreen: Setting allApps with', appsWithRisk.length, 'apps');
             setAllApps(appsWithRisk);
         } catch (error) {
-            console.error('AppListScreen: Error fetching apps:', error);
+            // Error fetching apps - will show empty state
         } finally {
             setLoading(false);
         }
@@ -83,7 +79,6 @@ const AppListScreen = ({ route }) => {
 
     useEffect(() => {
         const filterAndSortApps = () => {
-            console.log('AppListScreen: Filtering and sorting apps, allApps count:', allApps.length);
             let filtered = [...allApps];
 
         // Filter by risk level if specified
@@ -127,7 +122,6 @@ const AppListScreen = ({ route }) => {
             }
         });
 
-        console.log('AppListScreen: Setting filteredApps with', filtered.length, 'apps');
         setFilteredApps(filtered);
         };
 

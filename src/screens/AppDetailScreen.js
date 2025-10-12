@@ -113,15 +113,7 @@ const AppDetailScreen = ({ route }) => {
     const formattedInstallDate = formatInstallDate(appData.firstInstallTime);
     const formattedUsageStats = formatUsageStats(appData);
 
-    // Debug logging to see what data we have
-    console.log('AppDetailScreen:', {
-        packageName: appData.packageName,
-        firstInstallTime: appData.firstInstallTime,
-        formattedInstallDate,
-        size: appData.size,
-        storageData: appData.storage,
-        versionName: appData.versionName,
-    });
+
 
     const navigateBack = () => {
         navigation.goBack();

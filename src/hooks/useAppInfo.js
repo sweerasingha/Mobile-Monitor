@@ -11,11 +11,9 @@ export const useAppInfo = () => {
     useEffect(() => {
         const initializePermissions = async () => {
             try {
-                console.log('useAppInfo: Initializing permissions...');
-                const permissions = await PermissionService.checkPermissions();
-                console.log('useAppInfo: Permissions checked:', permissions);
+                await PermissionService.checkPermissions();
             } catch (err) {
-                console.warn('Failed to check initial permissions:', err);
+                // Failed to check initial permissions
             }
         };
         initializePermissions();
@@ -47,7 +45,6 @@ export const useAppInfo = () => {
         try {
             return await appDataService.getAppDetails(packageName);
         } catch (err) {
-            console.error('Error getting app details:', err);
             return null;
         }
     }, [appDataService]);
@@ -91,7 +88,6 @@ export const useAppInfo = () => {
         try {
             return await PermissionService.checkUsageStatsPermission();
         } catch (err) {
-            console.error('Error checking usage stats permission:', err);
             return false;
         }
     }, []);
@@ -101,7 +97,6 @@ export const useAppInfo = () => {
         try {
             return await PermissionService.requestUsageStatsPermission();
         } catch (err) {
-            console.error('Error requesting usage stats permission:', err);
             return false;
         }
     }, []);

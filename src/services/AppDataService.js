@@ -8,17 +8,10 @@ export class AppDataService {
     constructor() {
         this.isNativeModuleAvailable = NativeBridgeService.isAvailable();
         this.platformInfo = NativeBridgeService.getPlatformInfo();
-
-        console.log('AppDataService initialized - Native module available:', this.isNativeModuleAvailable);
-        console.log('Platform info:', this.platformInfo);
     }
 
     async getInstalledApps() {
-        console.log('AppDataService: getInstalledApps called');
-        console.log('AppDataService: Native module available =', this.isNativeModuleAvailable);
-
         if (!this.isNativeModuleAvailable) {
-            console.error('Native module InstalledApps not available - app monitoring features disabled');
             throw new Error('Native module not available. App monitoring features require platform-specific implementations.');
         }
 
@@ -32,16 +25,10 @@ export class AppDataService {
     }
 
     async getAndroidApps() {
-        console.log('AppDataService: getAndroidApps called');
         try {
             const rawApps = await NativeBridgeService.getInstalledApps();
-            console.log('AppDataService: Raw apps received:', rawApps?.length || 0, 'apps');
-            if (rawApps && rawApps.length > 0) {
-                console.log('AppDataService: Sample app:', rawApps[0]);
-            }
             return await this.processAppData(rawApps || []);
         } catch (error) {
-            console.error('Error getting Android apps:', error);
             throw new Error(`Failed to retrieve Android apps: ${error.message}`);
         }
     }
@@ -51,18 +38,14 @@ export class AppDataService {
             const apps = await NativeBridgeService.getInstalledApps();
             return await this.processAppData(apps || []);
         } catch (error) {
-            console.error('Error getting iOS apps:', error);
-            console.warn('iOS has limited app monitoring capabilities due to platform restrictions');
+            // iOS has limited app monitoring capabilities due to platform restrictions
             throw new Error(`Failed to retrieve iOS apps: ${error.message}`);
         }
     }
 
     async processAppData(rawApps) {
-        console.log('AppDataService: Processing app data, received:', rawApps?.length || 0, 'apps');
-
         // Validate and sanitize the raw app data
         const validatedApps = DataValidationService.validateAppArray(rawApps);
-        console.log('AppDataService: After validation:', validatedApps.length, 'valid apps');
 
         // Process apps and enhance with network usage data
         const enhancedApps = [];
@@ -91,13 +74,11 @@ export class AppDataService {
                 const enhancedApp = await NativeBridgeService.enhanceAppWithNetworkUsage(app);
                 enhancedApps.push(enhancedApp);
             } catch (error) {
-                console.warn('AppDataService: Error enhancing app data for', app.packageName, error);
                 // Add the app without enhancement if network data fails
                 enhancedApps.push(app);
             }
         }
 
-        console.log('AppDataService: Enhanced', enhancedApps.length, 'apps with network usage data');
         return enhancedApps;
     }
 
@@ -121,7 +102,6 @@ export class AppDataService {
                 permissionDetails: PermissionService.getPermissionAnalysis(appDetails.permissions || []),
             };
         } catch (error) {
-            console.error('Error getting app details:', error);
             throw new Error(`Failed to retrieve app details for ${packageName}: ${error.message}`);
         }
     }
@@ -160,7 +140,6 @@ export class AppDataService {
      * Get recently used apps
      */
     getRecentApps(apps, limit = 5) {
-        console.log('AppDataService: getRecentApps called with', apps.length, 'apps');
         const filtered = apps
             .filter(app => {
                 const lastUsed = app.lastUsedTimestamp || app.lastTimeUsed || 0;
@@ -190,7 +169,6 @@ export class AppDataService {
                     hasUsageData ||
                     hasNetworkUsage ||
                     (isLikelyUserApp && (lastUsed > 0 || isRecentlyInstalled));
-                console.log(`App ${app.appName || app.name}: package=${app.packageName}, isLikelyUserApp=${isLikelyUserApp}, lastUsed=${lastUsed}, hasUsageData=${hasUsageData}, hasNetworkUsage=${hasNetworkUsage}, isOurApp=${isOurApp}, shouldInclude=${shouldInclude}`);
                 return shouldInclude;
             })
             .sort((a, b) => {
@@ -220,7 +198,6 @@ export class AppDataService {
                 return bUsageScore - aUsageScore;
             })
             .slice(0, limit);
-        console.log('AppDataService: Filtered to', filtered.length, 'recent apps');
         return filtered;
     }
 
@@ -273,7 +250,6 @@ export class AppDataService {
         try {
             return await NativeBridgeService.hasUsageStatsPermission();
         } catch (error) {
-            console.error('Error checking usage stats permission:', error);
             return false;
         }
     }
@@ -288,7 +264,6 @@ export class AppDataService {
         try {
             return await NativeBridgeService.requestUsageStatsPermission();
         } catch (error) {
-            console.error('Error requesting usage stats permission:', error);
             throw error;
         }
     }
@@ -328,8 +303,6 @@ export class AppDataService {
             platform: Platform.OS,
             nativeModuleAvailable: this.isNativeModuleAvailable,
         };
-
-        console.error('AppDataService Error:', errorInfo);
 
         // TODO: In production, send to error monitoring service
         // ErrorMonitoringService.reportError(errorInfo);

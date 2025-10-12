@@ -71,7 +71,7 @@ const SettingsScreen = () => {
                 setSettings(JSON.parse(savedSettings));
             }
         } catch (error) {
-            console.log('Error loading settings:', error);
+            // Error loading settings - will use defaults
         }
     };
 
@@ -79,7 +79,7 @@ const SettingsScreen = () => {
         try {
             await AsyncStorage.setItem('appSettings', JSON.stringify(newSettings));
         } catch (error) {
-            console.log('Error saving settings:', error);
+            // Error saving settings
         }
     };
 
@@ -262,7 +262,6 @@ This data was exported from Mobile Monitor v${exportData.appVersion}`;
             });
 
         } catch (error) {
-            console.log('Export error:', error);
             showAlert('Export Failed', 'Unable to export your data. Please try again.');
         }
     };
@@ -292,7 +291,7 @@ This data was exported from Mobile Monitor v${exportData.appVersion}`;
                             await AsyncStorage.removeItem('scanResults');
                             await AsyncStorage.removeItem('userPreferences');
                         } catch (error) {
-                            console.log('Error clearing additional data:', error);
+                            // Error clearing additional data
                         }
                         showAlert('Settings Reset', 'All settings have been reset to default values and stored data has been cleared.');
                     },

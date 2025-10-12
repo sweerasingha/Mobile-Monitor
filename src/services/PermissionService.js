@@ -4,57 +4,57 @@ export class PermissionService {
     // Permission risk levels
     static RISK_LEVELS = {
         HIGH: 'HIGH',
-        MEDIUM: 'MEDIUM', 
-        LOW: 'LOW'
+        MEDIUM: 'MEDIUM',
+        LOW: 'LOW',
     };
 
     // Permission categories with risk assessments
     static PERMISSION_RISKS = {
-        CAMERA: { 
+        CAMERA: {
             level: PermissionService.RISK_LEVELS.HIGH,
             description: 'Can take photos and videos without your knowledge',
-            category: 'Privacy Critical'
+            category: 'Privacy Critical',
         },
-        LOCATION: { 
+        LOCATION: {
             level: PermissionService.RISK_LEVELS.HIGH,
             description: 'Can track your location and movement patterns',
-            category: 'Privacy Critical'
+            category: 'Privacy Critical',
         },
-        MICROPHONE: { 
+        MICROPHONE: {
             level: PermissionService.RISK_LEVELS.HIGH,
             description: 'Can record audio and conversations',
-            category: 'Privacy Critical'
+            category: 'Privacy Critical',
         },
-        CONTACTS: { 
+        CONTACTS: {
             level: PermissionService.RISK_LEVELS.HIGH,
             description: 'Can access your personal contacts and relationships',
-            category: 'Personal Data'
+            category: 'Personal Data',
         },
-        PHONE: { 
+        PHONE: {
             level: PermissionService.RISK_LEVELS.HIGH,
             description: 'Can access phone numbers and call information',
-            category: 'Personal Data'
+            category: 'Personal Data',
         },
-        SMS: { 
+        SMS: {
             level: PermissionService.RISK_LEVELS.HIGH,
             description: 'Can read and send text messages',
-            category: 'Communications'
+            category: 'Communications',
         },
-        STORAGE: { 
+        STORAGE: {
             level: PermissionService.RISK_LEVELS.MEDIUM,
             description: 'Can access files and photos on your device',
-            category: 'Data Access'
+            category: 'Data Access',
         },
-        CALENDAR: { 
+        CALENDAR: {
             level: PermissionService.RISK_LEVELS.MEDIUM,
             description: 'Can view and modify your calendar events',
-            category: 'Personal Data'
+            category: 'Personal Data',
         },
-        SENSORS: { 
+        SENSORS: {
             level: PermissionService.RISK_LEVELS.MEDIUM,
             description: 'Can access body sensors and health data',
-            category: 'Health Data'
-        }
+            category: 'Health Data',
+        },
     };
 
     /**
@@ -68,7 +68,7 @@ export class PermissionService {
                 highRiskCount: 0,
                 mediumRiskCount: 0,
                 lowRiskCount: 0,
-                riskFactors: []
+                riskFactors: [],
             };
         }
 
@@ -83,7 +83,7 @@ export class PermissionService {
             if (risk) {
                 riskFactors.push({
                     permission,
-                    ...risk
+                    ...risk,
                 });
 
                 switch (risk.level) {
@@ -124,7 +124,7 @@ export class PermissionService {
             riskFactors: riskFactors.sort((a, b) => {
                 const levelOrder = { HIGH: 3, MEDIUM: 2, LOW: 1 };
                 return levelOrder[b.level] - levelOrder[a.level];
-            })
+            }),
         };
     }
 
@@ -133,25 +133,24 @@ export class PermissionService {
      */
     static getPermissionAnalysis(permissions = []) {
         const riskAnalysis = this.analyzeAppRisk(permissions);
-        
         const permissionDetails = permissions.map(permission => {
             const risk = this.PERMISSION_RISKS[permission] || {
                 level: this.RISK_LEVELS.LOW,
                 description: 'System permission',
-                category: 'System'
+                category: 'System',
             };
 
             return {
                 name: permission,
                 ...risk,
-                recommendation: this.getPermissionRecommendation(permission, risk.level)
+                recommendation: this.getPermissionRecommendation(permission, risk.level),
             };
         });
 
         return {
             ...riskAnalysis,
             permissionDetails,
-            recommendations: this.getAppRecommendations(riskAnalysis)
+            recommendations: this.getAppRecommendations(riskAnalysis),
         };
     }
 
@@ -182,7 +181,7 @@ export class PermissionService {
                 type: 'critical',
                 title: 'High Privacy Risk',
                 message: 'This app has multiple high-risk permissions. Consider if you really need all these features.',
-                action: 'Review permissions in device settings'
+                action: 'Review permissions in device settings',
             });
         }
 
@@ -191,7 +190,7 @@ export class PermissionService {
                 type: 'warning',
                 title: 'Privacy Sensitive',
                 message: 'This app can access sensitive data. Monitor its behavior regularly.',
-                action: 'Check app activity periodically'
+                action: 'Check app activity periodically',
             });
         }
 
@@ -200,7 +199,7 @@ export class PermissionService {
                 type: 'safe',
                 title: 'Low Privacy Impact',
                 message: 'This app has minimal privacy risks.',
-                action: 'No immediate action needed'
+                action: 'No immediate action needed',
             });
         }
 
@@ -215,14 +214,9 @@ export class PermissionService {
             return false;
         }
 
-        try {
-            // This would need to be implemented in native code
-            // For now, we'll assume it's not granted
-            return false;
-        } catch (error) {
-            console.error('Error checking usage stats permission:', error);
-            return false;
-        }
+        // This would need to be implemented in native code
+        // For now, we'll assume it's not granted
+        return false;
     }
 
     /**
@@ -239,15 +233,15 @@ export class PermissionService {
             [
                 {
                     text: 'Cancel',
-                    style: 'cancel'
+                    style: 'cancel',
                 },
                 {
                     text: 'Open Settings',
                     onPress: () => {
                         // Open usage access settings
                         Linking.openSettings();
-                    }
-                }
+                    },
+                },
             ]
         );
 
@@ -264,19 +258,16 @@ export class PermissionService {
 
         try {
             const permissions = {};
-            
             // Check permissions that exist in the PermissionsAndroid module
             if (PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE) {
                 permissions.readPhoneState = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE);
             }
-            
             if (PermissionsAndroid.PERMISSIONS.ACCESS_NETWORK_STATE) {
                 permissions.accessNetworkState = await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.ACCESS_NETWORK_STATE);
             }
 
             return permissions;
         } catch (error) {
-            console.error('Error checking permissions:', error);
             return {};
         }
     }
@@ -291,12 +282,10 @@ export class PermissionService {
 
         try {
             const permissionsToRequest = [];
-            
             // Only request permissions that exist
             if (PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE) {
                 permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE);
             }
-            
             if (PermissionsAndroid.PERMISSIONS.ACCESS_NETWORK_STATE) {
                 permissionsToRequest.push(PermissionsAndroid.PERMISSIONS.ACCESS_NETWORK_STATE);
             }
@@ -308,7 +297,6 @@ export class PermissionService {
             const grants = await PermissionsAndroid.requestMultiple(permissionsToRequest);
             return grants;
         } catch (error) {
-            console.error('Error requesting permissions:', error);
             return {};
         }
     }

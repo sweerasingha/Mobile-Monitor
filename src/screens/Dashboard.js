@@ -27,7 +27,6 @@ const DashboardScreen = () => {
     });
     const [recentApps, setRecentApps] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [hasUsagePermission, setHasUsagePermission] = useState(false);
     const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
 
     useEffect(() => {
@@ -36,7 +35,6 @@ const DashboardScreen = () => {
                 setIsLoading(true);
                 // Check usage stats permission
                 const hasPermission = await appDataService.checkUsageStatsPermission();
-                setHasUsagePermission(hasPermission);
                 if (!hasPermission) {
                     setShowPermissionPrompt(true);
                 }
@@ -47,9 +45,7 @@ const DashboardScreen = () => {
                     setAppCategories(categorizedApps);
 
                     // Get most recently used apps using the service method
-                    console.log('Dashboard: All apps before filtering:', apps.length);
                     const recent = getRecentApps(apps, 5);
-                    console.log('Dashboard: Recent apps after filtering:', recent.length);
                     setRecentApps(recent);
                 } else {
                     // Handle empty apps case
@@ -62,7 +58,6 @@ const DashboardScreen = () => {
                     setRecentApps([]);
                 }
             } catch (fetchError) {
-                console.error('Error fetching apps:', fetchError);
                 Alert.alert(
                     'Error',
                     'Failed to load apps. Please check permissions and try again.',
@@ -92,7 +87,6 @@ const DashboardScreen = () => {
                             // Check permission again after user returns
                             setTimeout(async () => {
                                 const hasPermission = await appDataService.checkUsageStatsPermission();
-                                setHasUsagePermission(hasPermission);
                                 if (hasPermission) {
                                     setShowPermissionPrompt(false);
                                     // Refresh the app data
@@ -171,8 +165,7 @@ const DashboardScreen = () => {
                                     setRecentApps(recent);
                                 }
                                 setIsLoading(false);
-                            }).catch(err => {
-                                console.error(err);
+                            }).catch(() => {
                                 setIsLoading(false);
                             });
                         }}
@@ -281,7 +274,7 @@ const DashboardScreen = () => {
                 {/* Recent Apps Section */}
                 <View style={styles.recentAppsContainer}>
                     <View style={styles.recentAppsHeader}>
-                        <Text style={styles.sectionTitle}>Recent Apps (Debug)</Text>
+                        <Text style={styles.sectionTitle}>Recent Apps</Text>
                         <TouchableOpacity onPress={navigateToAppListScreen}>
                             <View style={styles.viewAllButton}>
                                 <Text style={styles.viewAllButtonText}>View All</Text>
@@ -291,7 +284,7 @@ const DashboardScreen = () => {
 
                     <RecentApps apps={recentApps} isLoading={false} />
                     {/* Debug Info - temporary for troubleshooting */}
-                    <DebugInfo apps={Object.values(appCategories).flat()} recentApps={recentApps} />
+                    {/* <DebugInfo apps={Object.values(appCategories).flat()} recentApps={recentApps} /> */}
                 </View>
             </ScrollView>
 

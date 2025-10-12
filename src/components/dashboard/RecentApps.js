@@ -13,14 +13,6 @@ import RiskBadge from '../common/RiskBadge.js';
 const RecentApps = ({ apps, isLoading }) => {
     const navigation = useNavigation();
 
-    console.log('RecentApps: Rendering with props:', {
-        appsCount: apps ? apps.length : 0,
-        isLoading,
-        firstApp: apps && apps.length > 0 ? apps[0].name : 'none',
-    });
-
-
-
     const handleAppPress = (app) => {
         // Use only real data - no fallback generation
         const dataUsage = app.dataUsage || {

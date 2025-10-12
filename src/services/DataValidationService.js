@@ -14,7 +14,6 @@ export class DataValidationService {
 
         // Required fields
         if (!appData.packageName && !appData.bundleId) {
-            console.warn('App data missing package/bundle identifier');
             return null;
         }
 
@@ -67,7 +66,7 @@ export class DataValidationService {
             return null;
         }
 
-        const numTimestamp = typeof timestamp === 'string' ? parseInt(timestamp) : timestamp;
+        const numTimestamp = typeof timestamp === 'string' ? parseInt(timestamp, 10) : timestamp;
         if (isNaN(numTimestamp) || numTimestamp < 0) {
             return null;
         }
@@ -75,7 +74,6 @@ export class DataValidationService {
         // Check if timestamp is reasonable (not in the future, not too old)
         const now = Date.now();
         const oneYearAgo = now - (365 * 24 * 60 * 60 * 1000);
-        
         if (numTimestamp > now || numTimestamp < oneYearAgo) {
             return null;
         }
@@ -138,7 +136,6 @@ export class DataValidationService {
      */
     static validateAppArray(apps) {
         if (!Array.isArray(apps)) {
-            console.warn('Expected array of apps, got:', typeof apps);
             return [];
         }
 
@@ -154,9 +151,9 @@ export class DataValidationService {
         return {
             available: !!nativeModule,
             methods: nativeModule ? Object.keys(nativeModule) : [],
-            message: nativeModule 
-                ? 'Native module is available' 
-                : 'Native module not available - limited functionality'
+            message: nativeModule
+                ? 'Native module is available'
+                : 'Native module not available - limited functionality',
         };
     }
 }
