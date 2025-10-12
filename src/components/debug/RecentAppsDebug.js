@@ -75,7 +75,7 @@ const RecentAppsDebug = () => {
     return (
         <ScrollView style={styles.container}>
             <Text style={styles.title}>Recent Apps Debug</Text>
-            
+
             <View style={styles.infoSection}>
                 <Text style={styles.infoText}>
                     Usage Permission: {hasPermission ? '✅ Granted' : '❌ Not Granted'}

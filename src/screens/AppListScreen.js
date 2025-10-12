@@ -379,15 +379,21 @@ const AppListScreen = ({ route }) => {
             {/* Bottom Navigation Bar */}
             <View style={styles.bottomNavBar}>
                 <TouchableOpacity style={styles.navBarItem} onPress={() => navigation.navigate('Dashboard')}>
-                    <Text style={styles.navBarIcon}>🏠</Text>
+                    <View style={styles.navIconContainer}>
+                        <Text style={styles.navBarIcon}>🏠</Text>
+                    </View>
                     <Text style={styles.navBarText}>Home</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.navBarItem} onPress={() => navigation.navigate('AppListScreen')}>
-                    <Text style={styles.navBarIcon}>📱</Text>
-                    <Text style={styles.navBarText}>Apps</Text>
+                <TouchableOpacity style={[styles.navBarItem, styles.activeNavItem]} onPress={() => navigation.navigate('AppListScreen')}>
+                    <View style={[styles.navIconContainer, styles.activeNavIcon]}>
+                        <Text style={[styles.navBarIcon, styles.activeIconText]}>📱</Text>
+                    </View>
+                    <Text style={[styles.navBarText, styles.activeNavText]}>Apps</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.navBarItem} onPress={() => navigation.navigate('SettingsScreen')}>
-                    <Text style={styles.navBarIcon}>⚙️</Text>
+                    <View style={styles.navIconContainer}>
+                        <Text style={styles.navBarIcon}>⚙️</Text>
+                    </View>
                     <Text style={styles.navBarText}>Settings</Text>
                 </TouchableOpacity>
             </View>
@@ -641,21 +647,38 @@ const styles = StyleSheet.create({
     navBarItem: {
         alignItems: 'center',
         flex: 1,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 12,
     },
-    navBarItemActive: {
-        // Active state styling
+    activeNavItem: {
+        backgroundColor: '#f1f5f9',
+    },
+    navIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    activeNavIcon: {
+        backgroundColor: '#3b82f6',
     },
     navBarIcon: {
-        fontSize: 24,
-        marginBottom: 4,
+        fontSize: 22,
+    },
+    activeIconText: {
+        color: '#fff',
     },
     navBarText: {
         fontSize: 12,
         color: '#666',
+        fontWeight: '500',
     },
-    navBarTextActive: {
-        color: '#007AFF',
-        fontWeight: 'bold',
+    activeNavText: {
+        color: '#3b82f6',
+        fontWeight: '600',
     },
 });
 

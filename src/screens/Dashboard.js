@@ -76,7 +76,8 @@ const DashboardScreen = () => {
         };
 
         checkPermissionAndFetchApps();
-    }, [getInstalledApps, categorizeAppsByRisk, getRecentApps, appDataService]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Intentionally empty - functions are stable via useCallback
 
     const handleRequestUsagePermission = async () => {
         try {

@@ -80,6 +80,7 @@ export class AppDataService {
 
                 // Add category if not already set
                 if (!app.category || app.category === 'Other') {
+                    // Apply categorization
                     app.category = appCategorization.categorizeApp(app.packageName, app.name);
                 }
 
@@ -169,7 +170,6 @@ export class AppDataService {
                 const isSystemApp = app.packageName.startsWith('com.android.') &&
                                    app.packageName !== 'com.android.chrome' &&
                                    app.packageName !== 'com.android.vending';
-                
                 // Simplified and more inclusive definition of user apps
                 const isLikelyUserApp = !isSystemApp &&
                     app.packageName.includes('.') &&

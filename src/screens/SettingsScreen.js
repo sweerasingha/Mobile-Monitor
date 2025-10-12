@@ -96,7 +96,6 @@ const SettingsScreen = () => {
             ...settings,
             [settingKey]: !settings[settingKey],
         };
-        
         setSettings(newSettings);
         await saveSettings(newSettings);
 
@@ -130,7 +129,6 @@ const SettingsScreen = () => {
 
     const handlePrivacyPolicy = async () => {
         const privacyPolicyURL = 'https://docs.google.com/document/d/1234567890/edit'; // Replace with your actual privacy policy URL
-        
         Alert.alert(
             'Privacy Policy',
             'Would you like to view our privacy policy?',
@@ -169,7 +167,6 @@ const SettingsScreen = () => {
 
     const handleTermsOfService = async () => {
         const termsURL = 'https://docs.google.com/document/d/0987654321/edit'; // Replace with your actual terms URL
-        
         Alert.alert(
             'Terms of Service',
             'Would you like to view our terms of service?',
@@ -240,7 +237,6 @@ const SettingsScreen = () => {
             // Get app data for export
             const appData = await AsyncStorage.getItem('appSettings');
             const scanData = await AsyncStorage.getItem('scanResults') || '{}';
-            
             const exportData = {
                 settings: JSON.parse(appData || '{}'),
                 scanResults: JSON.parse(scanData),
@@ -289,10 +285,8 @@ This data was exported from Mobile Monitor v${exportData.appVersion}`;
                             backgroundScanning: false,
                             analyticsSharing: false,
                         };
-                        
                         setSettings(defaultSettings);
                         await saveSettings(defaultSettings);
-                        
                         // Also clear any other stored data if needed
                         try {
                             await AsyncStorage.removeItem('scanResults');
@@ -300,7 +294,6 @@ This data was exported from Mobile Monitor v${exportData.appVersion}`;
                         } catch (error) {
                             console.log('Error clearing additional data:', error);
                         }
-                        
                         showAlert('Settings Reset', 'All settings have been reset to default values and stored data has been cleared.');
                     },
                 },
@@ -422,15 +415,21 @@ This data was exported from Mobile Monitor v${exportData.appVersion}`;
             {/* Bottom Navigation Bar */}
             <View style={styles.bottomNavBar}>
                 <TouchableOpacity style={styles.navBarItem} onPress={() => navigation.navigate('Dashboard')}>
-                    <Text style={styles.navBarIcon}>🏠</Text>
+                    <View style={styles.navIconContainer}>
+                        <Text style={styles.navBarIcon}>🏠</Text>
+                    </View>
                     <Text style={styles.navBarText}>Home</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.navBarItem} onPress={() => navigation.navigate('AppListScreen')}>
-                    <Text style={styles.navBarIcon}>📱</Text>
+                    <View style={styles.navIconContainer}>
+                        <Text style={styles.navBarIcon}>📱</Text>
+                    </View>
                     <Text style={styles.navBarText}>Apps</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.navBarItem, styles.activeNavItem]}>
-                    <Text style={styles.navBarIcon}>⚙️</Text>
+                    <View style={[styles.navIconContainer, styles.activeNavIcon]}>
+                        <Text style={[styles.navBarIcon, styles.activeIconText]}>⚙️</Text>
+                    </View>
                     <Text style={[styles.navBarText, styles.activeNavText]}>Settings</Text>
                 </TouchableOpacity>
             </View>
@@ -547,21 +546,38 @@ const styles = StyleSheet.create({
     navBarItem: {
         alignItems: 'center',
         flex: 1,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 12,
     },
     activeNavItem: {
-        opacity: 1,
+        backgroundColor: '#f1f5f9',
+    },
+    navIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 4,
+    },
+    activeNavIcon: {
+        backgroundColor: '#3b82f6',
     },
     navBarIcon: {
-        fontSize: 24,
-        marginBottom: 4,
+        fontSize: 22,
+    },
+    activeIconText: {
+        color: '#fff',
     },
     navBarText: {
         fontSize: 12,
         color: '#666',
+        fontWeight: '500',
     },
     activeNavText: {
-        color: '#ff6347',
-        fontWeight: 'bold',
+        color: '#3b82f6',
+        fontWeight: '600',
     },
 });
 

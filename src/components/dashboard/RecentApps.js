@@ -56,21 +56,38 @@ const RecentApps = ({ apps, isLoading }) => {
 
     // Helper function to determine risk level based on permissions
     const getRiskLevel = (app) => {
+        // Use the risk analysis from PermissionService if available
+        if (app.riskAnalysis && app.riskAnalysis.riskLevel) {
+            switch (app.riskAnalysis.riskLevel) {
+                case 'HIGH_RISK':
+                    return 'high';
+                case 'MEDIUM_RISK':
+                    return 'medium';
+                case 'LOW_RISK':
+                    return 'low';
+                case 'NO_RISK':
+                    return 'none';
+                default:
+                    return 'none';
+            }
+        }
+
+        // Fallback to simple permission-based analysis
         const permissionsCount = app.permissions ? app.permissions.length : 0;
         const hasHighRiskPermissions = app.permissions && (
-            app.permissions.includes('CAMERA') &&
-            app.permissions.includes('LOCATION') &&
-            app.permissions.includes('CONTACTS')
+            app.permissions.includes('CAMERA') ||
+            app.permissions.includes('LOCATION') ||
+            app.permissions.includes('MICROPHONE')
         );
 
-        if (hasHighRiskPermissions || permissionsCount >= 5) {
-            return 'High Risk';
+        if (hasHighRiskPermissions && permissionsCount >= 3) {
+            return 'high';
         } else if (permissionsCount >= 3) {
-            return 'Medium Risk';
+            return 'medium';
         } else if (permissionsCount >= 1) {
-            return 'Low Risk';
+            return 'low';
         } else {
-            return 'No Risk';
+            return 'none';
         }
     };
 
