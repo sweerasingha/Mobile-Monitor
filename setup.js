@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔧 Setting up Mobile Monitor project...');
+console.log('🔧 Setting up Monitor Mate project...');
 
 // Create missing directories
 const directories = [

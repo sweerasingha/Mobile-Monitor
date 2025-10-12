@@ -70,7 +70,7 @@ const DashboardScreen = () => {
     }, [getInstalledApps, categorizeAppsByRisk]);
 
     const navigateToAppList = (riskLevel) => {
-        navigation.navigate('AppList', { riskLevel });
+        navigation.navigate('AppListScreen', { riskLevel });
     };
 
     const navigateToSettings = () => {
@@ -83,18 +83,6 @@ const DashboardScreen = () => {
 
     const navigateToSettingsScreen = () => {
         navigation.navigate('SettingsScreen');
-    };
-
-    // Get greeting based on time of day
-    const getGreeting = () => {
-        const hour = new Date().getHours();
-        if (hour < 12) {
-            return 'Good Morning';
-        }
-        if (hour < 17) {
-            return 'Good Afternoon';
-        }
-        return 'Good Evening';
     };
 
     // Get total app count
@@ -160,8 +148,7 @@ const DashboardScreen = () => {
             {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Text style={styles.greetingText}>{getGreeting()}</Text>
-                    <Text style={styles.headerTitle}>Mobile Monitor</Text>
+                    <Text style={styles.headerTitle}>Monitor Mate</Text>
                 </View>
                 <TouchableOpacity onPress={navigateToSettings} style={styles.profileIconContainer}>
                     <View style={styles.profileIcon}>
