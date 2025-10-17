@@ -75,13 +75,6 @@ For more information, please visit [CocoaPods Getting Started guide](https://gui
 
 ## 📱 What to Expect
 
-### Without Native Modules
-- App launches successfully
-- Shows appropriate "feature unavailable" messages
-- Demonstrates UI/UX and architecture
-- Service status screen shows diagnostic information
-
-### With Native Modules
 - Full app monitoring functionality
 - Real app data from device
 - Complete security analysis
