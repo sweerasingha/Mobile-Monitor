@@ -30,7 +30,7 @@ class NotificationService {
                         { text: 'Settings', onPress: () => {
                             // In a real app, this would open device settings
                             console.log('Open device settings');
-                        }}
+                        }},
                     ]
                 );
                 return false;
@@ -46,14 +46,12 @@ class NotificationService {
         try {
             const settings = await AsyncStorage.getItem('appSettings');
             const parsedSettings = settings ? JSON.parse(settings) : {};
-            
             if (!parsedSettings.notifications || !parsedSettings.riskAlerts) {
                 return false;
             }
 
             // In a real app, this would schedule a local notification
             console.log(`Risk alert scheduled for ${appName} (${riskLevel} risk)`);
-            
             // Simulate notification for demo
             setTimeout(() => {
                 Alert.alert(
@@ -74,14 +72,12 @@ class NotificationService {
         try {
             const settings = await AsyncStorage.getItem('appSettings');
             const parsedSettings = settings ? JSON.parse(settings) : {};
-            
             if (!parsedSettings.notifications) {
                 return false;
             }
 
             // In a real app, this would schedule a local notification
             console.log(`Scan complete notification: ${appsScanned} apps scanned`);
-            
             return true;
         } catch (error) {
             console.log('Schedule scan notification error:', error);
