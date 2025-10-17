@@ -59,19 +59,14 @@ For more information, please visit [CocoaPods Getting Started guide](https://gui
 
 ## 🔧 Current Functionality
 
-### ✅ Available Features (No Native Module Required)
 - **Permission Analysis**: Security risk assessment of app permissions
 - **App Categorization**: Automatic categorization of applications  
 - **Risk Assessment**: Comprehensive security risk evaluation
 - **Service Status**: Built-in monitoring and diagnostic tools
 - **Error Handling**: Graceful degradation when features unavailable
-
-### ⚠️ Requires Native Implementation
 - **App List Retrieval**: Requires native `InstalledApps` module
 - **App Details**: Detailed app information from system
 - **Usage Statistics**: App usage time and patterns
-- **Data Usage Monitoring**: Network usage tracking (future feature)
-- **Real-time Monitoring**: Background monitoring (future feature)
 
 ## 📱 What to Expect
 
